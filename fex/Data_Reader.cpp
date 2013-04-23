@@ -627,7 +627,7 @@ fseeko(FILE *stream, off_t pos, int whence)
 blargg_err_t Std_File_Reader::seek_v( BOOST::uint64_t n )
 {
 #ifdef _WIN32
-	if ( _fseeki64( STATIC_CAST(FILE*, file_), n, SEEK_SET ) )
+	if ( fseek( STATIC_CAST(FILE*, file_), n, SEEK_SET ) )
 #else
     if ( fseeko( STATIC_CAST(FILE*, file_), n, SEEK_SET ) )
 #endif

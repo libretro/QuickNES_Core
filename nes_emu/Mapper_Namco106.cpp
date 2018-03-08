@@ -74,7 +74,7 @@ public:
 		if ( irq_pending )
 			return time;
 		
-		if ( (!irq_ctr) & 0x8000 )
+		if ( !(irq_ctr & 0x8000) )
 			return no_irq;
 		
 		return 0x10000 - irq_ctr + last_time;

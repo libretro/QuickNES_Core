@@ -44,6 +44,7 @@ struct apu_reflection
 		REFLECT( state.delay,           osc.delay );
 		REFLECT( state.length_counter,  osc.length_counter );
 		REFLECT( state.linear_counter,  osc.linear_counter );
+		REFLECT( state.phase,           osc.phase );
 		REFLECT( state.linear_mode,     osc.reg_written [3] );
 	}
 	

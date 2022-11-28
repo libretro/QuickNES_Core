@@ -509,7 +509,11 @@ static void palette_switch_set_index(int palette_index)
          1,
          RETRO_LOG_INFO,
          RETRO_MESSAGE_TARGET_OSD,
+#ifdef FORCE_STATUS
+         RETRO_MESSAGE_TYPE_STATUS,
+#else
          RETRO_MESSAGE_TYPE_NOTIFICATION_ALT,
+#endif
          -1
       };
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &msg);

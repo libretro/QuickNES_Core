@@ -510,7 +510,7 @@ static void palette_switch_set_index(int palette_index)
          RETRO_LOG_INFO,
          RETRO_MESSAGE_TARGET_OSD,
 #ifdef FORCE_STATUS
-         RETRO_MESSAGE_TYPE_STATUS,
+         RETRO_MESSAGE_TYPE_STATUS, // force next notification to display
 #else
          RETRO_MESSAGE_TYPE_NOTIFICATION_ALT,
 #endif

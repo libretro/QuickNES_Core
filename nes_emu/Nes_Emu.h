@@ -199,7 +199,7 @@ public:
 
 	// Built-in 2K memory
 	enum { low_mem_size = 0x800 };
-	uint8_t* low_mem()             { return emu.low_mem; }
+        uint8_t* low_mem() const            { return (uint8_t*)emu.low_mem; }
 
 	// Optional 8K memory
 	enum { high_mem_size = 0x2000 };

@@ -1319,9 +1319,6 @@ bool retro_load_game(const struct retro_game_info *info)
       return false;
 
    emu = new Nes_Emu;
-   register_optional_mappers();
-   register_extra_mappers();
-
    check_variables();
 
    update_audio_mode(); //calls set_sample_rate and set_equalizer

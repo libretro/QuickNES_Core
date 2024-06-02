@@ -14,13 +14,6 @@ SOURCES_CXX := \
 	$(CORE_DIR)/nes_emu/apu_state.cpp \
 	$(CORE_DIR)/nes_emu/Blip_Buffer.cpp \
 	$(CORE_DIR)/nes_emu/Effects_Buffer.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Fme7.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Mmc5.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Namco106.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Vrc6.cpp \
-	$(CORE_DIR)/nes_emu/misc_mappers.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_15.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_60.cpp \
 	$(CORE_DIR)/nes_emu/Multi_Buffer.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Apu.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Buffer.cpp \
@@ -33,20 +26,10 @@ SOURCES_CXX := \
 	$(CORE_DIR)/nes_emu/Nes_File.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Fme7_Apu.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Mapper.cpp \
-	$(CORE_DIR)/nes_emu/nes_mappers.cpp \
-	$(CORE_DIR)/nes_emu/Nes_Mmc1.cpp \
-	$(CORE_DIR)/nes_emu/Nes_Mmc3.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Misc.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Unrom512.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Vrc1.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Vrc3.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Vrc2_4.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Vrc7.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Vrc7.cpp \
 	$(CORE_DIR)/nes_emu/emu2413.cpp \
 	$(CORE_DIR)/nes_emu/emu2413_state.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Namco_Apu.cpp \
-	$(CORE_DIR)/nes_emu/Mmc24.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Oscs.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Ppu.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Ppu_Impl.cpp \
@@ -55,22 +38,4 @@ SOURCES_CXX := \
 	$(CORE_DIR)/nes_emu/nes_util.cpp \
 	$(CORE_DIR)/nes_emu/Nes_Vrc6_Apu.cpp \
 	$(CORE_DIR)/nes_emu/Data_Reader.cpp \
-	$(CORE_DIR)/nes_emu/Mappers.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_74x161x162x32.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_180.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_193.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_240.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_241.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_244.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_246.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_AveNina.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_IremG101.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_IremTamS1.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_JalecoJF11.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Namco54xx.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Sunsoft1.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Sunsoft2.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_TaitoX1005.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_TaitoTC0190.cpp \
-	$(CORE_DIR)/nes_emu/Mapper_Un1rom.cpp \
-	$(CORE_DIR)/nes_emu/nes_ntsc.cpp
+	$(CORE_DIR)/nes_emu/nes_ntsc.cpp 

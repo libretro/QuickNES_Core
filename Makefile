@@ -367,7 +367,7 @@ else ifeq ($(platform), miyoo)
 	AR = /opt/miyoo/usr/bin/arm-linux-ar
 	fpic := -fPIC
 	SHARED := -shared -Wl,-version-script=link.T -Wl,-no-undefined
-	PLATFORM_DEFINES := -DNO_UNALIGNED_ACCESS
+	PLATFORM_DEFINES := -DNO_UNALIGNED_ACCESS -DFORCE_STATUS
 	PLATFORM_DEFINES += -O3 -fomit-frame-pointer -march=armv5te -mtune=arm926ej-s -ffast-math
 	CXXFLAGS += -fno-rtti -fno-exceptions
 

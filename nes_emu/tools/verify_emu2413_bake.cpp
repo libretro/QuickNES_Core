@@ -1,9 +1,10 @@
 /* Validation harness for the emu2413 table bake.
  *
- * Compiled twice -- once against the float path (-DEMU2413_REGEN_TABLES) and
- * once against the baked path (default) -- and the two dumps are diffed. They
- * must be byte-identical: identical tables AND identical output across a calc
- * sweep that exercises the FM, EG, PM/AM and key on/off paths.
+ * Runtime consistency check for the baked path: fingerprints every derived
+ * table and checksums a calc sweep that exercises the FM, EG, PM/AM and key
+ * on/off paths. The float reference that produced the baked tables now lives in
+ * tools/gen_emu2413_tables.cpp; a byte-diff of its output against
+ * emu2413_tables.h is the bake check.
  */
 #include <cstdio>
 #include <cstring>

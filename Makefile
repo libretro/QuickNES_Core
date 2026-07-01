@@ -713,7 +713,7 @@ clean:
 # table formula/tuning constant changes. Output is bit-exact to the float path;
 # the verify_* harnesses under nes_emu/tools prove it.
 regen-audio-tables:
-	$(CXX) -O2 -Ines_emu -o /tmp/qn_gen_emu2413 nes_emu/tools/gen_emu2413_tables.cpp nes_emu/emu2413.cpp -DEMU2413_REGEN_TABLES
+	$(CXX) -O2 -Ines_emu -o /tmp/qn_gen_emu2413 nes_emu/tools/gen_emu2413_tables.cpp
 	/tmp/qn_gen_emu2413 > nes_emu/emu2413_tables.h
 	$(CXX) -O2 -o /tmp/qn_gen_nonlin nes_emu/tools/gen_nes_nonlin_table.cpp
 	/tmp/qn_gen_nonlin > nes_emu/nes_nonlin_table.h

@@ -4,6 +4,10 @@
 #include "Nes_Buffer.h"
 
 #include "Nes_Apu.h"
+#include <string.h>
+#ifndef NES_NONLIN_REGEN
+#include "nes_nonlin_table.h"
+#endif
 
 /* Library Copyright (C) 2003-2006 Shay Green. This library is free software;
 you can redistribute it and/or modify it under the terms of the GNU Lesser
@@ -160,6 +164,9 @@ Nes_Nonlinearizer::Nes_Nonlinearizer()
 	apu = NULL;
 	enabled = true;
 	
+#ifdef NES_NONLIN_REGEN
+	/* Float-derived DAC curve. Compiled only when regenerating
+	 * nes_nonlin_table.h (see tools/gen_nes_nonlin_table.cpp). */
 	float const gain = 0x7fff * 1.3f;
 	// don't use entire range, so any overflow will stay within table
 	int const range = (int) (table_size * Nes_Apu::nonlinear_tnd_gain());
@@ -175,6 +182,10 @@ Nes_Nonlinearizer::Nes_Nonlinearizer()
 		int out = (int) d;
 		table [j & (table_size - 1)] = out;
 	}
+#else
+	/* Default: deterministic baked curve, bit-identical on every platform. */
+	memcpy( table, baked_nonlin_table, sizeof table );
+#endif
 	extra_accum = 0;
 	extra_prev = 0;
 	extra_valid = false;

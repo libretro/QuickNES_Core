@@ -22,16 +22,9 @@
 
 #define CORE_VERSION "1.0-WIP"
 
-#define NES_4_3 (4.0 / 3.0)
-
-// Pixel aspect ratio. NES pixels are 8:7 horizontally relative to the visible
-// raster. As a macro this used to capture `width` and `height` from caller
-// scope, which silently bound to any same-named local variable; an inline
-// function makes the dependency explicit.
-static inline float nes_par(unsigned width, unsigned height)
-{
-   return (float) width * (8.0f / 7.0f) / (float) height;
-}
+// Aspect ratio is computed as an exact integer numerator:denominator in
+// get_aspect_ratio(); see there. The only floating point is the single division
+// at the libretro API boundary (retro_game_geometry.aspect_ratio is a float).
 
 static Nes_Emu *emu;
 
@@ -607,7 +600,22 @@ void retro_get_system_info(struct retro_system_info *info)
 
 float get_aspect_ratio(unsigned width, unsigned height)
 {
-   return aspect_ratio_par ? nes_par(width, height) : NES_4_3;
+   /* Exact integer ratio: NES pixels are 8:7, so the pixel aspect ratio is
+      (width*8):(height*7); otherwise the fixed 4:3. The lone float division is
+      the API boundary (retro_game_geometry.aspect_ratio is a float) and is more
+      accurate than a chained float computation would be. */
+   unsigned num, den;
+   if (aspect_ratio_par)
+   {
+      num = width  * 8;
+      den = height * 7;
+   }
+   else
+   {
+      num = 4;
+      den = 3;
+   }
+   return (float) num / (float) den;
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info)

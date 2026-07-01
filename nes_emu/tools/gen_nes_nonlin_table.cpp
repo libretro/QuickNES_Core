@@ -1,36 +1,41 @@
-/* Generator for nes_nonlin_table.h.
+/* Generator for nes_nonlin_table.h (offline / not part of the library build).
  *
- * The Nes_Nonlinearizer DAC curve is a fixed function of compile-time
- * constants (no sample rate, no EQ, no runtime parameter), so it bakes to a
- * single deterministic table. The formula here is the exact one from
- * Nes_Nonlinearizer::Nes_Nonlinearizer(); keep the two in sync (the ctor's
- * regen path compiles the same code, guarded by NES_NONLIN_REGEN).
+ * The Nes_Nonlinearizer DAC curve is a fixed function of compile-time constants
+ * (no sample rate, no EQ, no runtime parameter), so it bakes to a single
+ * deterministic table. It is computed here in exact 64-bit integer arithmetic
+ * (no floating point): the curve is a rational function, so the integer form
+ * reproduces the original float-derived table byte-for-byte while being
+ * bit-identical on every platform.
+ *
+ *   d = gain * 163.67 / (24329/n + 100),  n = 202*j/(range-1),
+ *   gain = 32767 * 1.3,  range = table_size * 3/4
+ * =>  d = 32767*13*16367*202*j / (1000 * (24329*(range-1) + 20200*j))
  *
  * Regenerate:
- *   g++ -O2 -o gen gen_nes_nonlin_table.cpp && ./gen > ../nes_nonlin_table.h
+ *   g++ -O2 -o gen tools/gen_nes_nonlin_table.cpp && ./gen > ../nes_nonlin_table.h
  */
 #include <cstdio>
 #include <cstdint>
 
 enum { table_bits = 11 };
 enum { table_size = 1 << table_bits };
-static double nonlinear_tnd_gain(void) { return 0.75; }
 
 int main(void)
 {
 	int16_t table[table_size];
-
-	float const gain = 0x7fff * 1.3f;
-	int const range = (int) (table_size * nonlinear_tnd_gain());
+	int const range = table_size * 3 / 4;               /* table_size * 0.75, exact */
+	long long const knum = (long long) 32767 * 13 * 16367 * 202;
 	for (int i = 0; i < table_size; i++)
 	{
 		int const offset = table_size - range;
 		int j = i - offset;
-		float n = 202.0f / (range - 1) * j;
-		float d = 0;
-		if (n)
-			d = gain * 163.67f / (24329.0f / n + 100.0f);
-		int out = (int) d;
+		long long out = 0;
+		if (j != 0)
+		{
+			long long num = knum * j;
+			long long den = 1000LL * ((long long) 24329 * (range - 1) + (long long) 20200 * j);
+			out = num / den;                            /* trunc toward zero, matching (int)d */
+		}
 		table[j & (table_size - 1)] = (int16_t) out;
 	}
 

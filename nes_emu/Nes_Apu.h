@@ -98,11 +98,6 @@ public:
 private:
 	friend class Nes_Nonlinearizer;
 	void enable_nonlinear();
-#ifdef NES_NONLIN_REGEN
-	// Only used when regenerating nes_nonlin_table.h; the default build uses
-	// the baked integer DAC curve and never references this.
-	static double nonlinear_tnd_gain() { return 0.75; }
-#endif
 private:
 	friend struct Nes_Dmc;
 	

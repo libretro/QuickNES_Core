@@ -85,7 +85,7 @@ struct mapper_state_t
 {
 	int size;
 	union {
-		double align;
+		uint64_t align; /* force 8-byte alignment (was double; no float needed) */
 		uint8_t data [max_mapper_state_size];
 	};
 	

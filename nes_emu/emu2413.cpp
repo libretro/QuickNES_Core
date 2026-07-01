@@ -135,6 +135,12 @@ enum
                   Create tables
  
 ****************************************************/
+#ifdef EMU2413_REGEN_TABLES
+/* Float-derived table builders. Compiled only when regenerating
+ * emu2413_tables.h (see tools/gen_emu2413_tables.cpp). The default build does
+ * not compile these; it loads the baked deterministic tables instead, so the
+ * OPLL output is bit-identical across platforms, compilers, and libm/x87/SSE
+ * variations. */
 INLINE static e_int32 Min (e_int32 i, e_int32 j)
 {
   if (i < j)
@@ -219,6 +225,7 @@ static void makeAmTable (OPLL * opll)
   for (i = 0; i < AM_PG_WIDTH; i++)
     opll->amtable[i] = (e_int32) ((double) AM_DEPTH / 2 / DB_STEP * (1.0 + sin (2.0 * PI * i / PM_PG_WIDTH)));
 }
+#endif /* EMU2413_REGEN_TABLES (block A) */
 
 /* Phase increment counter table */
 static void makeDphaseTable (OPLL * opll)
@@ -233,6 +240,8 @@ static void makeDphaseTable (OPLL * opll)
         opll->dphaseTable[fnum][block][ML] = (((fnum * mltable[ML]) << block) >> (20 - DP_BITS));
 }
 
+#ifdef EMU2413_REGEN_TABLES
+/* Float-derived builders, block B (TLL + AR/DR dphase). Regen-only. */
 static void makeTllTable (OPLL *opll)
 {
 #define dB2(x) ((x)*2)
@@ -389,6 +398,7 @@ static void makeDphaseDRTable (OPLL * opll)
       }
     }
 }
+#endif /* EMU2413_REGEN_TABLES (block B) */
 
 static void makeRksTable (OPLL *opll)
 {
@@ -565,25 +575,71 @@ static void OPLL_SLOT_reset (OPLL *opll, OPLL_SLOT * slot, int type)
   slot->egout = 0;
 }
 
+#ifndef EMU2413_REGEN_TABLES
+#include "emu2413_tables.h"
+/* Default build: copy the deterministic baked tables into the instance. These
+ * were computed once from the float builders at the fixed NES OPLL clock and
+ * are identical on every platform. memcpy sizes are checked against the baked
+ * array sizes by static asserts below. */
+static void load_baked_tables (OPLL *opll)
+{
+  memcpy (opll->AR_ADJUST_TABLE, baked_AR_ADJUST_TABLE, sizeof opll->AR_ADJUST_TABLE);
+  memcpy (opll->DB2LIN_TABLE,    baked_DB2LIN_TABLE,    sizeof opll->DB2LIN_TABLE);
+  memcpy (opll->fullsintable,    baked_fullsintable,    sizeof opll->fullsintable);
+  memcpy (opll->halfsintable,    baked_halfsintable,    sizeof opll->halfsintable);
+  memcpy (opll->pmtable,         baked_pmtable,         sizeof opll->pmtable);
+  memcpy (opll->amtable,         baked_amtable,         sizeof opll->amtable);
+  memcpy (opll->tllTable,        baked_tllTable,        sizeof opll->tllTable);
+  memcpy (opll->dphaseARTable,   baked_dphaseARTable,   sizeof opll->dphaseARTable);
+  memcpy (opll->dphaseDRTable,   baked_dphaseDRTable,   sizeof opll->dphaseDRTable);
+}
+
+/* Compile-time guards: baked array byte size must equal the struct member. A
+ * mismatch (e.g. a macro size change without a regen) fails the build instead
+ * of silently truncating in memcpy. */
+typedef char emu2413_bake_check[
+    (sizeof baked_AR_ADJUST_TABLE == sizeof(((OPLL*)0)->AR_ADJUST_TABLE)) &&
+    (sizeof baked_DB2LIN_TABLE    == sizeof(((OPLL*)0)->DB2LIN_TABLE))    &&
+    (sizeof baked_fullsintable    == sizeof(((OPLL*)0)->fullsintable))    &&
+    (sizeof baked_halfsintable    == sizeof(((OPLL*)0)->halfsintable))    &&
+    (sizeof baked_pmtable         == sizeof(((OPLL*)0)->pmtable))         &&
+    (sizeof baked_amtable         == sizeof(((OPLL*)0)->amtable))         &&
+    (sizeof baked_tllTable        == sizeof(((OPLL*)0)->tllTable))        &&
+    (sizeof baked_dphaseARTable   == sizeof(((OPLL*)0)->dphaseARTable))   &&
+    (sizeof baked_dphaseDRTable   == sizeof(((OPLL*)0)->dphaseDRTable))
+    ? 1 : -1];
+#endif /* !EMU2413_REGEN_TABLES */
+
 static void internal_refresh (OPLL *opll)
 {
   makeDphaseTable (opll);
+#ifdef EMU2413_REGEN_TABLES
   makeDphaseARTable (opll);
   makeDphaseDRTable (opll);
   opll->pm_dphase = (e_uint32)  (PM_SPEED * PM_DP_WIDTH / (opll->clk / 72));
   opll->am_dphase = (e_uint32)  (AM_SPEED * AM_DP_WIDTH / (opll->clk / 72));
+#else
+  /* dphaseARTable/dphaseDRTable are loaded in maketables() from baked data;
+   * the two dphase scalars resolve to constants at the fixed NES clock. */
+  opll->pm_dphase = baked_pm_dphase;
+  opll->am_dphase = baked_am_dphase;
+#endif
 }
 
 static void maketables (OPLL *opll, e_uint32 c)
 {
     opll->clk = c;
+#ifdef EMU2413_REGEN_TABLES
     makePmTable (opll);
     makeAmTable (opll);
     makeDB2LinTable (opll);
     makeAdjustTable (opll);
     makeTllTable (opll);
-    makeRksTable (opll);
     makeSinTable (opll);
+#else
+    load_baked_tables (opll);
+#endif
+    makeRksTable (opll);
     //makeDefaultPatch ();
     internal_refresh (opll);
 }

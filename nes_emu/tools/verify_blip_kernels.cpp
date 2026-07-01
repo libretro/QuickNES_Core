@@ -15,8 +15,8 @@ static unsigned long long fnv(const void* p, int nbytes, unsigned long long h)
 	return h;
 }
 
-struct Eq { double treble; long rolloff; };
-static Eq   eqs[6]   = { {-1.0,80},{-15.0,80},{-12.0,180},{0.0,1},{5.0,1},{-47.0,2000} };
+struct Eq { int treble; long rolloff; };
+static Eq   eqs[6]   = { {-1,80},{-15,80},{-12,180},{0,1},{5,1},{-47,2000} };
 static long rates[4] = { 32000, 44100, 48000, 96000 };
 
 template<int Q>
@@ -31,9 +31,10 @@ static unsigned long long sweep(unsigned long long h)
 		s1.treble_eq( eq );
 		h = fnv( s1.regen_impulses(), s1.regen_size() * (int)sizeof(short), h );
 
-		/* Exercise the shared volume rescale path (both attenuating and not). */
+		/* Exercise the shared volume rescale path. 32768 in Q30 gives
+		 * new_unit = 1/32768 -> factor 1.0 -> one kernel-shift + adjust_impulse. */
 		Blip_Synth<Q,1> s2;
-		s2.volume( 0.03 );        /* small -> triggers the kernel-shift branch */
+		s2.volume( 32768 );
 		s2.treble_eq( eq );
 		h = fnv( s2.regen_impulses(), s2.regen_size() * (int)sizeof(short), h );
 	}

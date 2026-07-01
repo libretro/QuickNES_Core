@@ -14,9 +14,9 @@
 #include <cstdio>
 #include "Blip_Buffer.h"
 
-struct Eq { const char* name; double treble; long rolloff; };
-static Eq   eqs[6]   = { {"nes",-1.0,80}, {"famicom",-15.0,80}, {"tv",-12.0,180},
-                         {"flat",0.0,1}, {"crisp",5.0,1}, {"tinny",-47.0,2000} };
+struct Eq { const char* name; int treble; long rolloff; };
+static Eq   eqs[6]   = { {"nes",-1,80}, {"famicom",-15,80}, {"tv",-12,180},
+                         {"flat",0,1}, {"crisp",5,1}, {"tinny",-47,2000} };
 static long rates[4] = { 32000, 44100, 48000, 96000 };
 
 template<int Q>
@@ -51,7 +51,7 @@ int main(void)
 
 	/* Lookup dispatch: match on (width==quality, treble, rolloff, sample_rate).
 	 * Returns the kernel pointer and length, or NULL on an off-menu combo. */
-	std::printf("\nstatic const short* blip_lookup_kernel(int width, double treble,\n");
+	std::printf("\nstatic const short* blip_lookup_kernel(int width, int treble,\n");
 	std::printf("                                       long rolloff, long rate, int* out_n)\n{\n");
 	const char* qn[2] = { "8", "12" };
 	int         qv[2] = { 8, 12 };
@@ -61,8 +61,8 @@ int main(void)
 		for (int e = 0; e < 6; e++)
 		for (int r = 0; r < 4; r++)
 		{
-			std::printf("    if (treble == %.1f && rolloff == %ld && rate == %ld) { *out_n = (int)(sizeof bk_q%s_e%d_r%d/sizeof(short)); return bk_q%s_e%d_r%d; }\n",
-				eqs[e].treble, eqs[e].rolloff, rates[r], qn[qi], e, r, qn[qi], e, r);
+			std::printf("    if (treble == %d && rolloff == %ld && rate == %ld) { *out_n = (int)(sizeof bk_q%s_e%d_r%d/sizeof(short)); return bk_q%s_e%d_r%d; }\n",
+				(int)eqs[e].treble, eqs[e].rolloff, rates[r], qn[qi], e, r, qn[qi], e, r);
 		}
 		std::printf("  }\n");
 	}

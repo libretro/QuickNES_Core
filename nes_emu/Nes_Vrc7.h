@@ -17,7 +17,7 @@ public:
 	
 	// See Nes_Apu.h for reference
 	void reset();
-	void volume( double );
+	void volume();
 	void treble_eq( blip_eq_t const& );
 	void output( Blip_Buffer* );
 	enum { osc_count = 6 };

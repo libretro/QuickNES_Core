@@ -26,7 +26,7 @@ public:
 	
 	// See Nes_Apu.h for reference
 	void reset();
-	void volume( double );
+	void volume();
 	void treble_eq( blip_eq_t const& );
 	void output( Blip_Buffer* );
 	enum { osc_count = 3 };
@@ -66,9 +66,9 @@ private:
 	void run_until( blip_time_t );
 };
 
-inline void Nes_Fme7_Apu::volume( double v )
+inline void Nes_Fme7_Apu::volume()
 {
-	synth.volume( 0.38 / amp_range * v ); // to do: fine-tune
+	synth.volume( 2125114 ); // 0.38/192, Q30
 }
 
 inline void Nes_Fme7_Apu::treble_eq( blip_eq_t const& eq )
@@ -90,7 +90,7 @@ inline void Nes_Fme7_Apu::output( Blip_Buffer* buf )
 inline Nes_Fme7_Apu::Nes_Fme7_Apu()
 {
 	output( NULL );
-	volume( 1.0 );
+	volume();
 	reset();
 }
 

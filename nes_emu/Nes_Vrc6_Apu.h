@@ -20,7 +20,7 @@ public:
 	
 	// See Nes_Apu.h for reference
 	void reset();
-	void volume( double );
+	void volume();
 	void treble_eq( blip_eq_t const& );
 	void output( Blip_Buffer* );
 	enum { osc_count = 3 };
@@ -83,11 +83,10 @@ inline void Nes_Vrc6_Apu::osc_output( int i, Blip_Buffer* buf )
 	oscs [i].output = buf;
 }
 
-inline void Nes_Vrc6_Apu::volume( double v )
+inline void Nes_Vrc6_Apu::volume()
 {
-	double const factor = 0.0967 * 2;
-	saw_synth.volume( factor / 31 * v );
-	square_synth.volume( factor * 0.5 / 15 * v );
+	saw_synth.volume( 6698764 );    // 0.0967*2/31,     Q30
+	square_synth.volume( 6922056 ); // 0.0967*2*0.5/15, Q30
 }
 
 inline void Nes_Vrc6_Apu::treble_eq( blip_eq_t const& eq )

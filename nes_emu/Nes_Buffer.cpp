@@ -198,9 +198,9 @@ Nes_Apu* Nes_Nonlinearizer::enable( bool b, Blip_Buffer* buf )
 	apu->osc_output( 4, buf );
 	enabled = b;
 	if ( b )
-		apu->enable_nonlinear( 1.0 );
+		apu->enable_nonlinear();
 	else
-		apu->volume( 1.0 );
+		apu->volume();
 	return apu;
 }
 

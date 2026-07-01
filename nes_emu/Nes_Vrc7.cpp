@@ -14,7 +14,7 @@ Nes_Vrc7::Nes_Vrc7()
 {
 	opll = OPLL_new( 3579545 );
 	output( NULL );
-	volume( 1.0 );
+	volume();
 	reset();
 }
 
@@ -39,9 +39,9 @@ void Nes_Vrc7::reset()
 	OPLL_reset( ( OPLL * ) opll );
 }
 
-void Nes_Vrc7::volume( double v )
+void Nes_Vrc7::volume()
 {
-	synth.volume( v * 1. / 3. );
+	synth.volume( 357913941 ); // (1/3), Q30
 }
 
 void Nes_Vrc7::treble_eq( blip_eq_t const& eq )

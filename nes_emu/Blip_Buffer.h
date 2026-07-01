@@ -154,7 +154,7 @@ public:
 	class blip_eq_t;
 	
 	class Blip_Synth_ {
-		double volume_unit_;
+		long long volume_unit_q30_; // current volume, Q30 fixed (1.0 == 1<<30)
 		short* const impulses;
 		int const width;
 		long kernel_unit;
@@ -178,7 +178,8 @@ public:
 		
 		Blip_Synth_( short* impulses, int width );
 		void treble_eq( blip_eq_t const& );
-		void volume_unit( double );
+		// Set volume as a Q30 fixed-point unit (already divided by range).
+		void volume_unit_fixed( long long unit_q30 );
 	};
 
 // Quality level. Start with blip_good_quality.
@@ -186,14 +187,20 @@ const int blip_med_quality  = 8;
 const int blip_good_quality = 12;
 const int blip_high_quality = 16;
 
+// Fixed-point volume unit: 1.0 == BLIP_Q30_ONE. Chip volumes are passed as
+// exact Q30 integer constants (see blip_synth_volume() call sites), so the
+// whole volume path is integer and deterministic.
+#define BLIP_Q30_ONE (1LL << 30)
+
 // Range specifies the greatest expected change in amplitude. Calculate it
 // by finding the difference between the maximum and minimum expected
 // amplitudes (max - min).
 template<int quality,int range>
 class Blip_Synth {
 public:
-	// Set overall volume of waveform
-	void volume( double v ) { impl.volume_unit( v * (1.0 / (range < 0 ? -range : range)) ); }
+	// Set overall volume of waveform. v is a Q30 fixed-point scalar
+	// (BLIP_Q30_ONE == 1.0); the /range division is exact integer.
+	void volume( long long v_q30 ) { impl.volume_unit_fixed( v_q30 / (range < 0 ? -range : range) ); }
 	
 	// Configure low-pass filter (see notes.txt)
 	void treble_eq( blip_eq_t const& eq )       { impl.treble_eq( eq ); }
@@ -201,6 +208,7 @@ public:
 #if defined(BLIP_REGEN_KERNELS) || defined(BLIP_KERNEL_TEST)
 	short const* regen_impulses() const { return impl.regen_impulses(); }
 	int          regen_size()     const { return impl.regen_size(); }
+	int          regen_delta_factor() const { return impl.delta_factor; }
 #endif
 	
 	// Get/set Blip_Buffer used for output
@@ -242,18 +250,22 @@ private:
 class blip_eq_t {
 public:
 	// Logarithmic rolloff to treble dB at half sampling rate. Negative values reduce
-	// treble, small positive values (0 to 5.0) increase treble.
-	blip_eq_t( double treble_db = 0 );
+	// treble, small positive values (0 to 5) increase treble. Integer dB: every
+	// QuickNES preset uses whole-dB values, and the kernels are baked, so treble
+	// is a plain int (no float in the default audio path).
+	blip_eq_t( int treble_db = 0 );
 	
 	// See notes.txt
-	blip_eq_t( double treble, long rolloff_freq, long sample_rate, long cutoff_freq = 0 );
+	blip_eq_t( int treble, long rolloff_freq, long sample_rate, long cutoff_freq = 0 );
 	
 private:
-	double treble;
+	int treble;
 	long rolloff_freq;
 	long sample_rate;
 	long cutoff_freq;
+#ifdef BLIP_REGEN_KERNELS
 	void generate( float* out, int count ) const;
+#endif
 	friend class Blip_Synth_;
 };
 
@@ -361,9 +373,9 @@ void Blip_Synth<quality,range>::update( blip_time_t t, int amp )
 	offset_resampled( t * impl.buf->factor_ + impl.buf->offset_, delta, impl.buf );
 }
 
-inline blip_eq_t::blip_eq_t( double t ) :
+inline blip_eq_t::blip_eq_t( int t ) :
 		treble( t ), rolloff_freq( 0 ), sample_rate( 44100 ), cutoff_freq( 0 ) { }
-inline blip_eq_t::blip_eq_t( double t, long rf, long sr, long cf ) :
+inline blip_eq_t::blip_eq_t( int t, long rf, long sr, long cf ) :
 		treble( t ), rolloff_freq( rf ), sample_rate( sr ), cutoff_freq( cf ) { }
 
 inline int  Blip_Buffer::length() const         { return length_; }

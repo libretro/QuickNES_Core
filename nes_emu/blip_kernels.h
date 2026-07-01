@@ -1469,60 +1469,60 @@ static const short bk_q12_e5_r3[385] = {
 8386, 
 };
 
-static const short* blip_lookup_kernel(int width, double treble,
+static const short* blip_lookup_kernel(int width, int treble,
                                        long rolloff, long rate, int* out_n)
 {
   if (width == 8) {
-    if (treble == -1.0 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e0_r0/sizeof(short)); return bk_q8_e0_r0; }
-    if (treble == -1.0 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e0_r1/sizeof(short)); return bk_q8_e0_r1; }
-    if (treble == -1.0 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e0_r2/sizeof(short)); return bk_q8_e0_r2; }
-    if (treble == -1.0 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e0_r3/sizeof(short)); return bk_q8_e0_r3; }
-    if (treble == -15.0 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e1_r0/sizeof(short)); return bk_q8_e1_r0; }
-    if (treble == -15.0 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e1_r1/sizeof(short)); return bk_q8_e1_r1; }
-    if (treble == -15.0 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e1_r2/sizeof(short)); return bk_q8_e1_r2; }
-    if (treble == -15.0 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e1_r3/sizeof(short)); return bk_q8_e1_r3; }
-    if (treble == -12.0 && rolloff == 180 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e2_r0/sizeof(short)); return bk_q8_e2_r0; }
-    if (treble == -12.0 && rolloff == 180 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e2_r1/sizeof(short)); return bk_q8_e2_r1; }
-    if (treble == -12.0 && rolloff == 180 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e2_r2/sizeof(short)); return bk_q8_e2_r2; }
-    if (treble == -12.0 && rolloff == 180 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e2_r3/sizeof(short)); return bk_q8_e2_r3; }
-    if (treble == 0.0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e3_r0/sizeof(short)); return bk_q8_e3_r0; }
-    if (treble == 0.0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e3_r1/sizeof(short)); return bk_q8_e3_r1; }
-    if (treble == 0.0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e3_r2/sizeof(short)); return bk_q8_e3_r2; }
-    if (treble == 0.0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e3_r3/sizeof(short)); return bk_q8_e3_r3; }
-    if (treble == 5.0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e4_r0/sizeof(short)); return bk_q8_e4_r0; }
-    if (treble == 5.0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e4_r1/sizeof(short)); return bk_q8_e4_r1; }
-    if (treble == 5.0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e4_r2/sizeof(short)); return bk_q8_e4_r2; }
-    if (treble == 5.0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e4_r3/sizeof(short)); return bk_q8_e4_r3; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e5_r0/sizeof(short)); return bk_q8_e5_r0; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e5_r1/sizeof(short)); return bk_q8_e5_r1; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e5_r2/sizeof(short)); return bk_q8_e5_r2; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e5_r3/sizeof(short)); return bk_q8_e5_r3; }
+    if (treble == -1 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e0_r0/sizeof(short)); return bk_q8_e0_r0; }
+    if (treble == -1 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e0_r1/sizeof(short)); return bk_q8_e0_r1; }
+    if (treble == -1 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e0_r2/sizeof(short)); return bk_q8_e0_r2; }
+    if (treble == -1 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e0_r3/sizeof(short)); return bk_q8_e0_r3; }
+    if (treble == -15 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e1_r0/sizeof(short)); return bk_q8_e1_r0; }
+    if (treble == -15 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e1_r1/sizeof(short)); return bk_q8_e1_r1; }
+    if (treble == -15 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e1_r2/sizeof(short)); return bk_q8_e1_r2; }
+    if (treble == -15 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e1_r3/sizeof(short)); return bk_q8_e1_r3; }
+    if (treble == -12 && rolloff == 180 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e2_r0/sizeof(short)); return bk_q8_e2_r0; }
+    if (treble == -12 && rolloff == 180 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e2_r1/sizeof(short)); return bk_q8_e2_r1; }
+    if (treble == -12 && rolloff == 180 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e2_r2/sizeof(short)); return bk_q8_e2_r2; }
+    if (treble == -12 && rolloff == 180 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e2_r3/sizeof(short)); return bk_q8_e2_r3; }
+    if (treble == 0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e3_r0/sizeof(short)); return bk_q8_e3_r0; }
+    if (treble == 0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e3_r1/sizeof(short)); return bk_q8_e3_r1; }
+    if (treble == 0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e3_r2/sizeof(short)); return bk_q8_e3_r2; }
+    if (treble == 0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e3_r3/sizeof(short)); return bk_q8_e3_r3; }
+    if (treble == 5 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e4_r0/sizeof(short)); return bk_q8_e4_r0; }
+    if (treble == 5 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e4_r1/sizeof(short)); return bk_q8_e4_r1; }
+    if (treble == 5 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e4_r2/sizeof(short)); return bk_q8_e4_r2; }
+    if (treble == 5 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e4_r3/sizeof(short)); return bk_q8_e4_r3; }
+    if (treble == -47 && rolloff == 2000 && rate == 32000) { *out_n = (int)(sizeof bk_q8_e5_r0/sizeof(short)); return bk_q8_e5_r0; }
+    if (treble == -47 && rolloff == 2000 && rate == 44100) { *out_n = (int)(sizeof bk_q8_e5_r1/sizeof(short)); return bk_q8_e5_r1; }
+    if (treble == -47 && rolloff == 2000 && rate == 48000) { *out_n = (int)(sizeof bk_q8_e5_r2/sizeof(short)); return bk_q8_e5_r2; }
+    if (treble == -47 && rolloff == 2000 && rate == 96000) { *out_n = (int)(sizeof bk_q8_e5_r3/sizeof(short)); return bk_q8_e5_r3; }
   }
   if (width == 12) {
-    if (treble == -1.0 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e0_r0/sizeof(short)); return bk_q12_e0_r0; }
-    if (treble == -1.0 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e0_r1/sizeof(short)); return bk_q12_e0_r1; }
-    if (treble == -1.0 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e0_r2/sizeof(short)); return bk_q12_e0_r2; }
-    if (treble == -1.0 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e0_r3/sizeof(short)); return bk_q12_e0_r3; }
-    if (treble == -15.0 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e1_r0/sizeof(short)); return bk_q12_e1_r0; }
-    if (treble == -15.0 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e1_r1/sizeof(short)); return bk_q12_e1_r1; }
-    if (treble == -15.0 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e1_r2/sizeof(short)); return bk_q12_e1_r2; }
-    if (treble == -15.0 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e1_r3/sizeof(short)); return bk_q12_e1_r3; }
-    if (treble == -12.0 && rolloff == 180 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e2_r0/sizeof(short)); return bk_q12_e2_r0; }
-    if (treble == -12.0 && rolloff == 180 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e2_r1/sizeof(short)); return bk_q12_e2_r1; }
-    if (treble == -12.0 && rolloff == 180 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e2_r2/sizeof(short)); return bk_q12_e2_r2; }
-    if (treble == -12.0 && rolloff == 180 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e2_r3/sizeof(short)); return bk_q12_e2_r3; }
-    if (treble == 0.0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e3_r0/sizeof(short)); return bk_q12_e3_r0; }
-    if (treble == 0.0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e3_r1/sizeof(short)); return bk_q12_e3_r1; }
-    if (treble == 0.0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e3_r2/sizeof(short)); return bk_q12_e3_r2; }
-    if (treble == 0.0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e3_r3/sizeof(short)); return bk_q12_e3_r3; }
-    if (treble == 5.0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e4_r0/sizeof(short)); return bk_q12_e4_r0; }
-    if (treble == 5.0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e4_r1/sizeof(short)); return bk_q12_e4_r1; }
-    if (treble == 5.0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e4_r2/sizeof(short)); return bk_q12_e4_r2; }
-    if (treble == 5.0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e4_r3/sizeof(short)); return bk_q12_e4_r3; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e5_r0/sizeof(short)); return bk_q12_e5_r0; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e5_r1/sizeof(short)); return bk_q12_e5_r1; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e5_r2/sizeof(short)); return bk_q12_e5_r2; }
-    if (treble == -47.0 && rolloff == 2000 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e5_r3/sizeof(short)); return bk_q12_e5_r3; }
+    if (treble == -1 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e0_r0/sizeof(short)); return bk_q12_e0_r0; }
+    if (treble == -1 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e0_r1/sizeof(short)); return bk_q12_e0_r1; }
+    if (treble == -1 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e0_r2/sizeof(short)); return bk_q12_e0_r2; }
+    if (treble == -1 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e0_r3/sizeof(short)); return bk_q12_e0_r3; }
+    if (treble == -15 && rolloff == 80 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e1_r0/sizeof(short)); return bk_q12_e1_r0; }
+    if (treble == -15 && rolloff == 80 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e1_r1/sizeof(short)); return bk_q12_e1_r1; }
+    if (treble == -15 && rolloff == 80 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e1_r2/sizeof(short)); return bk_q12_e1_r2; }
+    if (treble == -15 && rolloff == 80 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e1_r3/sizeof(short)); return bk_q12_e1_r3; }
+    if (treble == -12 && rolloff == 180 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e2_r0/sizeof(short)); return bk_q12_e2_r0; }
+    if (treble == -12 && rolloff == 180 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e2_r1/sizeof(short)); return bk_q12_e2_r1; }
+    if (treble == -12 && rolloff == 180 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e2_r2/sizeof(short)); return bk_q12_e2_r2; }
+    if (treble == -12 && rolloff == 180 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e2_r3/sizeof(short)); return bk_q12_e2_r3; }
+    if (treble == 0 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e3_r0/sizeof(short)); return bk_q12_e3_r0; }
+    if (treble == 0 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e3_r1/sizeof(short)); return bk_q12_e3_r1; }
+    if (treble == 0 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e3_r2/sizeof(short)); return bk_q12_e3_r2; }
+    if (treble == 0 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e3_r3/sizeof(short)); return bk_q12_e3_r3; }
+    if (treble == 5 && rolloff == 1 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e4_r0/sizeof(short)); return bk_q12_e4_r0; }
+    if (treble == 5 && rolloff == 1 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e4_r1/sizeof(short)); return bk_q12_e4_r1; }
+    if (treble == 5 && rolloff == 1 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e4_r2/sizeof(short)); return bk_q12_e4_r2; }
+    if (treble == 5 && rolloff == 1 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e4_r3/sizeof(short)); return bk_q12_e4_r3; }
+    if (treble == -47 && rolloff == 2000 && rate == 32000) { *out_n = (int)(sizeof bk_q12_e5_r0/sizeof(short)); return bk_q12_e5_r0; }
+    if (treble == -47 && rolloff == 2000 && rate == 44100) { *out_n = (int)(sizeof bk_q12_e5_r1/sizeof(short)); return bk_q12_e5_r1; }
+    if (treble == -47 && rolloff == 2000 && rate == 48000) { *out_n = (int)(sizeof bk_q12_e5_r2/sizeof(short)); return bk_q12_e5_r2; }
+    if (treble == -47 && rolloff == 2000 && rate == 96000) { *out_n = (int)(sizeof bk_q12_e5_r3/sizeof(short)); return bk_q12_e5_r3; }
   }
   (void)treble; (void)rolloff; (void)rate; *out_n = 0; return 0;
 }

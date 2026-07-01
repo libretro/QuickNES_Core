@@ -115,14 +115,14 @@ public:
 
 	// Adjust effective frame rate by changing how many samples are generated each frame.
 	// Allows fine tuning of frame rate to improve synchronization.
-	void set_frame_rate( double rate );
+	void set_frame_rate( int rate );
 
 	// Number of sound channels for current cartridge
 	int channel_count() const { return channel_count_; }
 
 	// Frequency equalizer parameters
 	struct equalizer_t {
-		double treble; // 5.0 = extra-crisp, -200.0 = muffled
+		int treble; // 5 = extra-crisp, -200 = muffled (integer dB)
 		long bass;     // 0 = deep, 20000 = tinny
 	};
 

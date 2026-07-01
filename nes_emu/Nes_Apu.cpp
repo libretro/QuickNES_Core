@@ -33,7 +33,7 @@ Nes_Apu::Nes_Apu() :
 	oscs [4] = &dmc;
 	
 	output( NULL );
-	volume( 1.0 );
+	volume();
 	reset( false );
 }
 
@@ -49,15 +49,17 @@ void Nes_Apu::treble_eq( const blip_eq_t& eq )
 	dmc.synth.treble_eq( eq );
 }
 
-void Nes_Apu::enable_nonlinear( double v )
+// Volumes are exact Q30 fixed-point constants (BLIP_Q30_ONE == 1.0), equal to
+// round(volume * 2^30) of the original double expressions. Verified to produce
+// identical delta_factor to the former float path (tools/verify_blip_volume).
+void Nes_Apu::enable_nonlinear()
 {
 	dmc.nonlinear = true;
-	square_synth.volume( 1.3 * 0.25751258 / 0.742467605 * 0.25 / amp_range * v );
+	square_synth.volume( 8068874 );  // 1.3*0.25751258/0.742467605*0.25/15
 	
-	const double tnd = 0.48 / 202 * nonlinear_tnd_gain();
-	triangle.synth.volume( 3.0 * tnd );
-	noise.synth.volume( 2.0 * tnd );
-	dmc.synth.volume( tnd );
+	triangle.synth.volume( 5740798 ); // 3 * (0.48/202*0.75)
+	noise.synth.volume(    3827199 ); // 2 * (0.48/202*0.75)
+	dmc.synth.volume(      1913599 ); //     (0.48/202*0.75)
 	
 	square1 .last_amp = 0;
 	square2 .last_amp = 0;
@@ -66,13 +68,13 @@ void Nes_Apu::enable_nonlinear( double v )
 	dmc     .last_amp = 0;
 }
 
-void Nes_Apu::volume( double v )
+void Nes_Apu::volume()
 {
 	dmc.nonlinear = false;
-	square_synth.volume(   0.1128  / amp_range * v );
-	triangle.synth.volume( 0.12765 / amp_range * v );
-	noise.synth.volume(    0.0741  / amp_range * v );
-	dmc.synth.volume(      0.42545 / 127 * v );
+	square_synth.volume(   8074539 ); // 0.1128  / 15
+	triangle.synth.volume( 9137543 ); // 0.12765 / 15
+	noise.synth.volume(    5304285 ); // 0.0741  / 15
+	dmc.synth.volume(      3597035 ); // 0.42545 / 127
 }
 
 void Nes_Apu::output( Blip_Buffer* buffer )

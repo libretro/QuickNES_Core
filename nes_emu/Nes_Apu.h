@@ -58,7 +58,7 @@ public:
 	void load_state( apu_state_t const& );
 	
 	// Set overall volume (default is 1.0)
-	void volume( double );
+	void volume();
 	
 	// Set treble equalization (see notes.txt)
 	void treble_eq( const blip_eq_t& );
@@ -97,8 +97,12 @@ public:
 // End of public interface.
 private:
 	friend class Nes_Nonlinearizer;
-	void enable_nonlinear( double volume );
+	void enable_nonlinear();
+#ifdef NES_NONLIN_REGEN
+	// Only used when regenerating nes_nonlin_table.h; the default build uses
+	// the baked integer DAC curve and never references this.
 	static double nonlinear_tnd_gain() { return 0.75; }
+#endif
 private:
 	friend struct Nes_Dmc;
 	

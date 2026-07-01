@@ -17,7 +17,7 @@ public:
 	~Nes_Namco_Apu();
 
 	// See Nes_Apu.h for reference.
-	void volume( double );
+	void volume();
 	void treble_eq( const blip_eq_t& );
 	void output( Blip_Buffer* );
 	enum { osc_count = 8 };
@@ -82,7 +82,7 @@ inline uint8_t& Nes_Namco_Apu::access()
 	return reg [addr];
 }
 
-inline void Nes_Namco_Apu::volume( double v ) { synth.volume( 0.10 / osc_count * v ); }
+inline void Nes_Namco_Apu::volume() { synth.volume( 13421773 ); } // 0.10/8, Q30
 
 inline void Nes_Namco_Apu::treble_eq( const blip_eq_t& eq ) { synth.treble_eq( eq ); }
 

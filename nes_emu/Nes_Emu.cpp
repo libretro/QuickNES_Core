@@ -27,12 +27,12 @@ int const sound_fade_size = 384;
 BOOST_STATIC_ASSERT( Nes_Emu::image_width  == 0 + Nes_Ppu::image_width );
 BOOST_STATIC_ASSERT( Nes_Emu::image_height == 0 + Nes_Ppu::image_height );
 
-Nes_Emu::equalizer_t const Nes_Emu::nes_eq     = {  -1.0,   80 };
-Nes_Emu::equalizer_t const Nes_Emu::famicom_eq = { -15.0,   80 };
-Nes_Emu::equalizer_t const Nes_Emu::tv_eq      = { -12.0,  180 };
-Nes_Emu::equalizer_t const Nes_Emu::flat_eq    = {   0.0,    1 };
-Nes_Emu::equalizer_t const Nes_Emu::crisp_eq   = {   5.0,    1 };
-Nes_Emu::equalizer_t const Nes_Emu::tinny_eq   = { -47.0, 2000 };
+Nes_Emu::equalizer_t const Nes_Emu::nes_eq     = {  -1,   80 };
+Nes_Emu::equalizer_t const Nes_Emu::famicom_eq = { -15,   80 };
+Nes_Emu::equalizer_t const Nes_Emu::tv_eq      = { -12,  180 };
+Nes_Emu::equalizer_t const Nes_Emu::flat_eq    = {   0,    1 };
+Nes_Emu::equalizer_t const Nes_Emu::crisp_eq   = {   5,    1 };
+Nes_Emu::equalizer_t const Nes_Emu::tinny_eq   = { -47, 2000 };
 
 Nes_Emu::Nes_Emu()
 {
@@ -272,15 +272,16 @@ const char * Nes_Emu::set_sample_rate( long rate, class Nes_Effects_Buffer* buf 
 
 // Sound
 
-void Nes_Emu::set_frame_rate( double rate )
+void Nes_Emu::set_frame_rate( int rate )
 {
-	sound_buf->clock_rate( (long) (1789773 / 60.0 * rate) );
+	/* exact integer: rate is always the frame_rate enum (60) */
+	sound_buf->clock_rate( 1789773L * rate / 60 );
 }
 
 const char * Nes_Emu::set_sample_rate( long rate, Multi_Buffer* new_buf )
 {
 	RETURN_ERR( auto_init() );
-	emu.impl->apu.volume( 1.0 ); // cancel any previous non-linearity
+	emu.impl->apu.volume(); // cancel any previous non-linearity
 	RETURN_ERR( new_buf->set_sample_rate( rate, 1200 / frame_rate ) );
 	sound_buf = new_buf;
 	sound_buf_changed_count = 0;

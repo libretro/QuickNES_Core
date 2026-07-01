@@ -96,8 +96,10 @@ const char *Blip_Buffer::set_sample_rate( long new_rate, int msec )
 
 blip_resampled_time_t Blip_Buffer::clock_rate_factor( long clock_rate ) const
 {
-	double ratio = (double) sample_rate_ / clock_rate;
-	long factor = (long) floor( ratio * (1L << BLIP_BUFFER_ACCURACY) + 0.5 );
+	// factor = round( sample_rate_ / clock_rate * 2^BLIP_BUFFER_ACCURACY ),
+	// computed as an exact 64-bit integer (correctly rounded, no float).
+	long long num = ( (long long) sample_rate_ << BLIP_BUFFER_ACCURACY ) + clock_rate / 2;
+	long factor = (long) ( num / clock_rate );
 	return (blip_resampled_time_t) factor;
 }
 
@@ -158,7 +160,7 @@ Blip_Synth_::Blip_Synth_( short* p, int w ) :
 	impulses( p ),
 	width( w )
 {
-	volume_unit_ = 0.0;
+	volume_unit_q30_ = 0;
 	kernel_unit = 0;
 	buf = 0;
 	last_amp = 0;
@@ -166,6 +168,7 @@ Blip_Synth_::Blip_Synth_( short* p, int w ) :
 }
 
 // TODO: apparently this is defined elsewhere too
+#ifdef BLIP_REGEN_KERNELS
 static double const my_pi = 3.1415926535897932384626433832795029;
 
 static void gen_sinc( float* out, int count, double oversample, double treble, double cutoff )
@@ -209,13 +212,14 @@ void blip_eq_t::generate( float* out, int count ) const
 		oversample = half_rate / cutoff_freq;
 	double cutoff = rolloff_freq * oversample / half_rate;
 	
-	gen_sinc( out, count, blip_res * oversample, treble, cutoff );
+	gen_sinc( out, count, blip_res * oversample, (double) treble, cutoff );
 	
 	// apply (half of) hamming window
 	double to_fraction = my_pi / (count - 1);
 	for ( int i = count; i--; )
 		out [i] *= 0.54 - 0.46 * cos( i * to_fraction );
 }
+#endif /* BLIP_REGEN_KERNELS (float sinc / generate) */
 
 void Blip_Synth_::adjust_impulse()
 {
@@ -245,14 +249,20 @@ void Blip_Synth_::adjust_impulse()
 #include "blip_kernels.h"
 bool Blip_Synth_::load_baked_kernel( blip_eq_t const& eq )
 {
-	// All QuickNES EQ presets leave cutoff_freq at 0; anything else is off-menu.
-	if ( eq.cutoff_freq != 0 )
-		return false;
 	int n = 0;
-	short const* k = blip_lookup_kernel( width, eq.treble, eq.rolloff_freq,
-	                                     eq.sample_rate, &n );
+	short const* k = 0;
+	// All QuickNES EQ presets leave cutoff_freq at 0; anything else is off-menu.
+	if ( eq.cutoff_freq == 0 )
+		k = blip_lookup_kernel( width, eq.treble, eq.rolloff_freq, eq.sample_rate, &n );
 	if ( !k || n != impulses_size() )
-		return false;
+	{
+		// Off-menu combo (never requested in normal operation): fall back to the
+		// canonical 'nes' kernel @44100 for this width, which is always baked.
+		// Keeps the default build entirely float-free.
+		k = blip_lookup_kernel( width, -1, 80, 44100, &n );
+		if ( !k || n != impulses_size() )
+			return false;
+	}
 	for ( int i = 0; i < n; i++ )
 		impulses [i] = k [i];
 	kernel_unit = 32768; // base_unit; matches the baked (post-adjust_impulse) state
@@ -262,12 +272,9 @@ bool Blip_Synth_::load_baked_kernel( blip_eq_t const& eq )
 
 void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 {
-#ifndef BLIP_REGEN_KERNELS
-	// Default: load the deterministic baked base kernel. Only fall through to
-	// the floating-point build for an off-menu (width, treble, rolloff, rate)
-	// combo the frontend does not normally request.
-	if ( !load_baked_kernel( eq ) )
-#endif
+#ifdef BLIP_REGEN_KERNELS
+	// Regeneration build only: compute the kernel in floating point so the
+	// generator can emit blip_kernels.h. The default build never compiles this.
 	{
 	float fimpulse [blip_res / 2 * (blip_widest_impulse_ - 1) + blip_res * 2];
 	
@@ -305,36 +312,45 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 	}
 	adjust_impulse();
 	}
+#else
+	// Default: deterministic baked kernel (always succeeds via canonical
+	// fallback). No floating point in this path.
+	load_baked_kernel( eq );
+#endif
 	
 	// volume might require rescaling
-	double vol = volume_unit_;
+	long long vol = volume_unit_q30_;
 	if ( vol )
 	{
-		volume_unit_ = 0.0;
-		volume_unit( vol );
+		volume_unit_q30_ = 0;
+		volume_unit_fixed( vol );
 	}
 }
 
-void Blip_Synth_::volume_unit( double new_unit )
+void Blip_Synth_::volume_unit_fixed( long long unit_q30 )
 {
-	if ( new_unit != volume_unit_ )
+	if ( unit_q30 != volume_unit_q30_ )
 	{
 		// use default eq if it hasn't been set yet
 		if ( !kernel_unit )
-			treble_eq( -8.0 );
+			treble_eq( blip_eq_t( -8 ) );
 		
-		volume_unit_ = new_unit;
-		double factor = new_unit * (1L << blip_sample_bits) / kernel_unit;
+		volume_unit_q30_ = unit_q30;
 		
-		if ( factor > 0.0 )
+		// factor(real) = unit * 2^blip_sample_bits / kernel_unit.
+		// With unit stored in Q30, factor == unit_q30 / kernel_unit; carry it
+		// in Q16 fixed for the attenuation test and the final round.
+		long long factor_q16 = ( unit_q30 << 16 ) / kernel_unit;
+		
+		if ( factor_q16 > 0 )
 		{
 			int shift = 0;
 			
 			// if unit is really small, might need to attenuate kernel
-			while ( factor < 2.0 )
+			while ( factor_q16 < ( 2LL << 16 ) )
 			{
 				shift++;
-				factor *= 2.0;
+				factor_q16 <<= 1;
 			}
 			
 			if ( shift )
@@ -350,8 +366,7 @@ void Blip_Synth_::volume_unit( double new_unit )
 				adjust_impulse();
 			}
 		}
-		delta_factor = (int) floor( factor + 0.5 );
-		//printf( "delta_factor: %d, kernel_unit: %d\n", delta_factor, kernel_unit );
+		delta_factor = (int) ( ( factor_q16 + (1 << 15) ) >> 16 ); // round(factor)
 	}
 }
 

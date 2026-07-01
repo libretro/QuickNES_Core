@@ -7,6 +7,13 @@
 of the base 64 color palette. */
 #define NES_NTSC_EMPHASIS 1
 
+/* QuickNES uses nes_ntsc solely as a palette generator (nes_ntsc_init with a
+NULL kernel table); the built-in NTSC blitter and its floating-point kernel
+generation are unused.  Defining this compiles them out so the palette is
+produced entirely with the deterministic fixed-point path (no floating point,
+no libm), which is bit-identical across platforms. */
+#define NES_NTSC_NO_BLITTERS 1
+
 /* The following affect the built-in blitter only; a custom blitter can
 handle things however it wants. */
 

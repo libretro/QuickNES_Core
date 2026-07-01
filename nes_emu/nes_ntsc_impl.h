@@ -66,6 +66,7 @@ typedef struct init_t
 	i = t;\
 }
 
+#ifndef NES_NTSC_NO_BLITTERS
 static void init_filters( init_t* impl, nes_ntsc_setup_t const* setup )
 {
 #if rescale_out > 1
@@ -268,6 +269,8 @@ static void init( init_t* impl, nes_ntsc_setup_t const* setup )
 	}
 }
 
+#endif /* NES_NTSC_NO_BLITTERS (init_filters/init) */
+
 /* kernel generation */
 
 #define RGB_TO_YIQ( r, g, b, y, i ) (\
@@ -312,6 +315,7 @@ typedef struct pixel_info_t
 extern pixel_info_t const nes_ntsc_pixels [alignment_count];
 
 /* Generate pixel at all burst phases and column alignments */
+#ifndef NES_NTSC_NO_BLITTERS
 static void gen_kernel( init_t* impl, float y, float i, float q, nes_ntsc_rgb_t* out )
 {
 	/* generate for each scanline burst phase */
@@ -377,7 +381,11 @@ static void gen_kernel( init_t* impl, float y, float i, float q, nes_ntsc_rgb_t*
 	while ( --burst_remain );
 }
 
+#endif /* NES_NTSC_NO_BLITTERS (gen_kernel) */
+
+#ifndef NES_NTSC_NO_BLITTERS
 static void correct_errors( nes_ntsc_rgb_t color, nes_ntsc_rgb_t* out );
+#endif
 
 #if DISABLE_CORRECTION
 	#define CORRECT_ERROR( a ) { out [i] += rgb_bias; }

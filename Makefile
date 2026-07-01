@@ -708,5 +708,18 @@ clean:
 	rm -f $(OBJECTS)
 	rm -f $(TARGET)
 
-.PHONY: clean clean-objs
+# Regenerate the baked deterministic audio tables from their float reference
+# builders. Only needed when an EQ preset, supported sample rate, quality, or a
+# table formula/tuning constant changes. Output is bit-exact to the float path;
+# the verify_* harnesses under nes_emu/tools prove it.
+regen-audio-tables:
+	$(CXX) -O2 -Ines_emu -o /tmp/qn_gen_emu2413 nes_emu/tools/gen_emu2413_tables.cpp nes_emu/emu2413.cpp -DEMU2413_REGEN_TABLES
+	/tmp/qn_gen_emu2413 > nes_emu/emu2413_tables.h
+	$(CXX) -O2 -o /tmp/qn_gen_nonlin nes_emu/tools/gen_nes_nonlin_table.cpp
+	/tmp/qn_gen_nonlin > nes_emu/nes_nonlin_table.h
+	$(CXX) -O2 -DBLIP_REGEN_KERNELS -Ines_emu -o /tmp/qn_gen_blip nes_emu/tools/gen_blip_kernels.cpp nes_emu/Blip_Buffer.cpp
+	/tmp/qn_gen_blip > nes_emu/blip_kernels.h
+	@echo "Regenerated emu2413_tables.h, nes_nonlin_table.h, blip_kernels.h"
+
+.PHONY: clean clean-objs regen-audio-tables
 endif

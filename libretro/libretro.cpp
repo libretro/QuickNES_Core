@@ -42,6 +42,23 @@ static size_t cached_state_size = 0;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
+
+// Resolved audio output rate (what Blip_Buffer renders to and what we report
+// in retro_get_system_av_info). Defaults to 44100 to preserve historical
+// QuickNES output until the option is first read. `samplerate_hint` holds the
+// user's explicit pick in Hz, or 0 for "Auto".
+//
+// Output rate is purely an output-side concern here: the serialized savestate
+// (Nes_Emu::save_state) does not contain the Blip_Buffer sample data, so two
+// netplay peers running different output rates still produce identical state
+// CRCs. The rate only affects how the same APU deltas are resampled into the
+// final int16 stream.
+static unsigned audio_sample_rate = 44100;
+static unsigned samplerate_hint   = 0;
+// True until update_audio_mode() runs for the first time, so the initial rate
+// resolution does not fire a redundant SET_SYSTEM_AV_INFO before the frontend
+// has even read av_info.
+static bool audio_first_init = true;
 static retro_environment_t environ_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
@@ -603,7 +620,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    unsigned height = Nes_Emu::image_height - (use_overscan_v ? 0 : 16);
 #endif
 
-   const retro_system_timing timing = { Nes_Emu::frame_rate, 44100.0 };
+   const retro_system_timing timing = { Nes_Emu::frame_rate, (double)audio_sample_rate };
    info->timing = timing;
 
    info->geometry.base_width   = width;
@@ -711,15 +728,85 @@ enum {
 };
 static int cached_eq_choice = -1;
 
+// Mirrors fceumm's resolve_samplerate_hint(): an explicit pick always wins;
+// "Auto" asks the frontend for its target rate and snaps to the nearest
+// supported rate.
+static unsigned resolve_samplerate_hint(void)
+{
+	static const unsigned supported[4] = { 32000, 44100, 48000, 96000 };
+
+	if (samplerate_hint != 0)
+		return samplerate_hint;
+
+	unsigned target = 0;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE, &target) &&
+			target >= 8000 && target <= 384000)
+	{
+		unsigned best      = supported[0];
+		unsigned best_dist = (target > supported[0]) ?
+				(target - supported[0]) : (supported[0] - target);
+		for (int i = 1; i < 4; i++)
+		{
+			unsigned dist = (target > supported[i]) ?
+					(target - supported[i]) : (supported[i] - target);
+			if (dist < best_dist)
+			{
+				best_dist = dist;
+				best      = supported[i];
+			}
+		}
+		return best;
+	}
+
+#ifdef GEKKO
+	return 32000;
+#else
+	return 48000;
+#endif
+}
+
+// Reads the rate option and updates audio_sample_rate. Returns true if the
+// resolved output rate changed (so the caller can force the Blip_Buffer /
+// equalizer to rebuild and, at runtime, push fresh av_info to the frontend).
+static bool update_sample_rate(void)
+{
+	struct retro_variable var = { 0 };
+	unsigned old_rate = audio_sample_rate;
+
+	var.key = "quicknes_audio_samplerate";
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+	{
+		if      (0 == strcmp(var.value, "32000")) samplerate_hint = 32000;
+		else if (0 == strcmp(var.value, "44100")) samplerate_hint = 44100;
+		else if (0 == strcmp(var.value, "48000")) samplerate_hint = 48000;
+		else if (0 == strcmp(var.value, "96000")) samplerate_hint = 96000;
+		else                                      samplerate_hint = 0; /* auto */
+	}
+
+	audio_sample_rate = resolve_samplerate_hint();
+	return (audio_sample_rate != old_rate);
+}
+
 static void update_audio_mode(void)
 {
 	bool buffer_changed = false;
+
+	// Resolve the output rate first; everything below renders to it. A rate
+	// change must force every set_sample_rate() branch to re-run (the buffer
+	// pointer may be unchanged) and the equalizer impulse to rebuild, so we
+	// invalidate the cached buffer/eq sentinels.
+	bool rate_changed = update_sample_rate();
+	if (rate_changed)
+	{
+		current_buffer   = NULL;
+		cached_eq_choice = -1;
+	}
 
 	if (use_silent_buffer)
 	{
 		if (current_buffer != &silent_buffer)
 		{
-			emu->set_sample_rate(44100, &silent_buffer);
+			emu->set_sample_rate(audio_sample_rate, &silent_buffer);
 			current_buffer = &silent_buffer;
 		}
 		return;
@@ -733,7 +820,7 @@ static void update_audio_mode(void)
 		{
 			if (current_buffer != &nes_buffer)
 			{
-				emu->set_sample_rate(44100, &nes_buffer);
+				emu->set_sample_rate(audio_sample_rate, &nes_buffer);
 				current_buffer = &nes_buffer;
 				buffer_changed = true;
 			}
@@ -742,7 +829,7 @@ static void update_audio_mode(void)
 		{
 			if (current_buffer != &effects_buffer)
 			{
-				emu->set_sample_rate(44100, &effects_buffer);
+				emu->set_sample_rate(audio_sample_rate, &effects_buffer);
 				current_buffer = &effects_buffer;
 				buffer_changed = true;
 			}
@@ -762,7 +849,7 @@ static void update_audio_mode(void)
 		{
 			if (current_buffer != &mono_buffer)
 			{
-				emu->set_sample_rate(44100, &mono_buffer);
+				emu->set_sample_rate(audio_sample_rate, &mono_buffer);
 				current_buffer = &mono_buffer;
 				buffer_changed = true;
 			}
@@ -773,7 +860,7 @@ static void update_audio_mode(void)
 		//if the environment callback failed (won't happen), just set the nonlinear buffer
 		if (current_buffer != &nes_buffer)
 		{
-			emu->set_sample_rate(44100, &nes_buffer);
+			emu->set_sample_rate(audio_sample_rate, &nes_buffer);
 			current_buffer = &nes_buffer;
 			buffer_changed = true;
 		}
@@ -809,6 +896,19 @@ static void update_audio_mode(void)
 		}
 		cached_eq_choice = new_eq_choice;
 	}
+
+	// If the resolved output rate changed at runtime (user toggled the option
+	// or the frontend target moved under "Auto"), tell the frontend the new
+	// sample_rate so it re-opens its audio path. retro_get_system_av_info now
+	// reports audio_sample_rate, so this stays consistent. Suppressed during
+	// initial load: there, the frontend reads av_info itself after load_game.
+	if (rate_changed && !audio_first_init)
+	{
+		struct retro_system_av_info av = { 0 };
+		retro_get_system_av_info(&av);
+		environ_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av);
+	}
+	audio_first_init = false;
 }
 
 static void check_variables(void)
@@ -1285,10 +1385,13 @@ void retro_run(void)
 
    if (!audioDisabledForThisFrame)
    {
-	   // Mono -> Stereo.
-	   int16_t samples[2048];
-	   long read_samples = emu->read_samples(samples, 2048);
-	   int16_t out_samples[4096];
+	   // Mono -> Stereo. Sized for the highest supported output rate (96 kHz):
+	   // a PAL frame at 96 kHz is ~1920 mono samples, plus headroom for
+	   // frame-time jitter, so 4096 mono / 8192 stereo stays safe. At 44.1 kHz
+	   // this is the same generous margin it always had.
+	   int16_t samples[4096];
+	   long read_samples = emu->read_samples(samples, 4096);
+	   int16_t out_samples[8192];
 
 	   if ( current_buffer != &effects_buffer)
 	   {
@@ -1307,7 +1410,7 @@ void retro_run(void)
    }
    else
    {
-	   emu->read_samples(NULL, 2048);
+	   emu->read_samples(NULL, 4096);
    }
 }
 

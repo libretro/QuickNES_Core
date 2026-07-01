@@ -167,59 +167,9 @@ Blip_Synth_::Blip_Synth_( short* p, int w ) :
 	delta_factor = 0;
 }
 
-// TODO: apparently this is defined elsewhere too
-#ifdef BLIP_REGEN_KERNELS
-static double const my_pi = 3.1415926535897932384626433832795029;
-
-static void gen_sinc( float* out, int count, double oversample, double treble, double cutoff )
-{
-	if ( cutoff >= 0.999 )
-		cutoff = 0.999;
-	
-	if ( treble < -300.0 )
-		treble = -300.0;
-	if ( treble > 5.0 )
-		treble = 5.0;
-	
-	double const maxh = 4096.0;
-	double const rolloff = pow( 10.0, 1.0 / (maxh * 20.0) * treble / (1.0 - cutoff) );
-	double const pow_a_n = pow( rolloff, maxh - maxh * cutoff );
-	double const to_angle = my_pi / 2 / maxh / oversample;
-	for ( int i = 0; i < count; i++ )
-	{
-		double angle = ((i - count) * 2 + 1) * to_angle;
-		double c = rolloff * cos( (maxh - 1.0) * angle ) - cos( maxh * angle );
-		double cos_nc_angle = cos( maxh * cutoff * angle );
-		double cos_nc1_angle = cos( (maxh * cutoff - 1.0) * angle );
-		double cos_angle = cos( angle );
-		
-		c = c * pow_a_n - rolloff * cos_nc1_angle + cos_nc_angle;
-		double d = 1.0 + rolloff * (rolloff - cos_angle - cos_angle);
-		double b = 2.0 - cos_angle - cos_angle;
-		double a = 1.0 - cos_angle - cos_nc_angle + cos_nc1_angle;
-		
-		out [i] = (float) ((a * d + c * b) / (b * d)); // a / b + c / d
-	}
-}
-
-void blip_eq_t::generate( float* out, int count ) const
-{
-	// lower cutoff freq for narrow kernels with their wider transition band
-	// (8 points->1.49, 16 points->1.15)
-	double oversample = blip_res * 2.25 / count + 0.85;
-	double half_rate = sample_rate * 0.5;
-	if ( cutoff_freq )
-		oversample = half_rate / cutoff_freq;
-	double cutoff = rolloff_freq * oversample / half_rate;
-	
-	gen_sinc( out, count, blip_res * oversample, (double) treble, cutoff );
-	
-	// apply (half of) hamming window
-	double to_fraction = my_pi / (count - 1);
-	for ( int i = count; i--; )
-		out [i] *= 0.54 - 0.46 * cos( i * to_fraction );
-}
-#endif /* BLIP_REGEN_KERNELS (float sinc / generate) */
+/* The reference (float) kernel math lives in the offline generator
+   tools/gen_blip_kernels.cpp, which produced blip_kernels.h. The library
+   itself contains no floating point. */
 
 void Blip_Synth_::adjust_impulse()
 {
@@ -245,7 +195,6 @@ void Blip_Synth_::adjust_impulse()
 	//      printf( "%5ld,", impulses [j * blip_res + i + 1] );
 }
 
-#ifndef BLIP_REGEN_KERNELS
 #include "blip_kernels.h"
 bool Blip_Synth_::load_baked_kernel( blip_eq_t const& eq )
 {
@@ -268,55 +217,13 @@ bool Blip_Synth_::load_baked_kernel( blip_eq_t const& eq )
 	kernel_unit = 32768; // base_unit; matches the baked (post-adjust_impulse) state
 	return true;
 }
-#endif
 
 void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 {
-#ifdef BLIP_REGEN_KERNELS
-	// Regeneration build only: compute the kernel in floating point so the
-	// generator can emit blip_kernels.h. The default build never compiles this.
-	{
-	float fimpulse [blip_res / 2 * (blip_widest_impulse_ - 1) + blip_res * 2];
-	
-	int const half_size = blip_res / 2 * (width - 1);
-	eq.generate( &fimpulse [blip_res], half_size );
-	
-	int i;
-	
-	// need mirror slightly past center for calculation
-	for ( i = blip_res; i--; )
-		fimpulse [blip_res + half_size + i] = fimpulse [blip_res + half_size - 1 - i];
-	
-	// starts at 0
-	for ( i = 0; i < blip_res; i++ )
-		fimpulse [i] = 0.0f;
-	
-	// find rescale factor
-	double total = 0.0;
-	for ( i = 0; i < half_size; i++ )
-		total += fimpulse [blip_res + i];
-	
-	double const base_unit = 32768.0; // necessary for blip_unscaled to work
-	double rescale = base_unit / 2 / total;
-	kernel_unit = (long) base_unit;
-	
-	// integrate, first difference, rescale, convert to int
-	double sum = 0.0;
-	double next = 0.0;
-	int const impulses_size = this->impulses_size();
-	for ( i = 0; i < impulses_size; i++ )
-	{
-		impulses [i] = (short) floor( (next - sum) * rescale + 0.5 );
-		sum += fimpulse [i];
-		next += fimpulse [i + blip_res];
-	}
-	adjust_impulse();
-	}
-#else
-	// Default: deterministic baked kernel (always succeeds via canonical
-	// fallback). No floating point in this path.
+	// Deterministic baked kernel (always succeeds via the canonical fallback).
+	// No floating point: the reference kernel math lives in the offline generator
+	// tools/gen_blip_kernels.cpp, which produced blip_kernels.h.
 	load_baked_kernel( eq );
-#endif
 	
 	// volume might require rescaling
 	long long vol = volume_unit_q30_;

@@ -1,36 +1,118 @@
-/* Generator for blip_kernels.h.
+/* Generator for blip_kernels.h (offline / not part of the library build).
  *
- * Drives the REAL Blip_Synth_::treble_eq (float path, incl. adjust_impulse) for
- * every (quality, EQ preset, sample rate) combo QuickNES can request, and dumps
- * the resulting base kernel (kernel_unit == 32768, pre-volume). The emitted
- * values are therefore bit-identical to what treble_eq computes on this
- * reference build, and become the deterministic source for all platforms.
+ * This holds the reference floating-point kernel math (blargg's damped-sinc
+ * DSF + Hamming window + integrate/rescale/adjust_impulse) that used to live in
+ * Blip_Buffer.cpp under BLIP_REGEN_KERNELS. It was moved here so the library
+ * itself is free of floating point; this tool is the sole float reference and
+ * the deterministic source of blip_kernels.h for all platforms.
  *
- * Regenerate (must define BLIP_REGEN_KERNELS so treble_eq uses the float path
- * and the read accessors are exposed):
- *   g++ -O2 -DBLIP_REGEN_KERNELS -I.. -o gen gen_blip_kernels.cpp \
- *       ../Blip_Buffer.cpp && ./gen > ../blip_kernels.h
+ * The DSF formula has heavy cancellation between near-equal cosines, so a
+ * fixed-point cosine cannot reproduce the 16-bit taps bit-exactly; the kernels
+ * are therefore baked once here (in double) and shipped as integers.
+ *
+ * Regenerate:
+ *   g++ -O2 -o gen tools/gen_blip_kernels.cpp && ./gen > blip_kernels.h
  */
 #include <cstdio>
-#include "Blip_Buffer.h"
+#include <cmath>
+
+static const int   BLIP_PHASE_BITS = 6;
+static const int   blip_res = 1 << BLIP_PHASE_BITS;          /* 64 */
+static const int   blip_widest_impulse_ = 16;
+static double const my_pi = 3.1415926535897932384626433832795029;
+
+static void gen_sinc( float* out, int count, double oversample, double treble, double cutoff )
+{
+	if ( cutoff >= 0.999 ) cutoff = 0.999;
+	if ( treble < -300.0 ) treble = -300.0;
+	if ( treble > 5.0 )    treble = 5.0;
+
+	double const maxh = 4096.0;
+	double const rolloff = pow( 10.0, 1.0 / (maxh * 20.0) * treble / (1.0 - cutoff) );
+	double const pow_a_n = pow( rolloff, maxh - maxh * cutoff );
+	double const to_angle = my_pi / 2 / maxh / oversample;
+	for ( int i = 0; i < count; i++ )
+	{
+		double angle = ((i - count) * 2 + 1) * to_angle;
+		double c = rolloff * cos( (maxh - 1.0) * angle ) - cos( maxh * angle );
+		double cos_nc_angle = cos( maxh * cutoff * angle );
+		double cos_nc1_angle = cos( (maxh * cutoff - 1.0) * angle );
+		double cos_angle = cos( angle );
+
+		c = c * pow_a_n - rolloff * cos_nc1_angle + cos_nc_angle;
+		double d = 1.0 + rolloff * (rolloff - cos_angle - cos_angle);
+		double b = 2.0 - cos_angle - cos_angle;
+		double a = 1.0 - cos_angle - cos_nc_angle + cos_nc1_angle;
+
+		out [i] = (float) ((a * d + c * b) / (b * d));
+	}
+}
+static void generate( float* out, int count, int treble, long rolloff_freq, long sample_rate, long cutoff_freq )
+{
+	double oversample = blip_res * 2.25 / count + 0.85;
+	double half_rate = sample_rate * 0.5;
+	if ( cutoff_freq ) oversample = half_rate / cutoff_freq;
+	double cutoff = rolloff_freq * oversample / half_rate;
+	gen_sinc( out, count, blip_res * oversample, (double) treble, cutoff );
+	double to_fraction = my_pi / (count - 1);
+	for ( int i = count; i--; )
+		out [i] *= 0.54 - 0.46 * cos( i * to_fraction );
+}
+static void adjust_impulse( short* impulses, int width, long kernel_unit )
+{
+	int const size = blip_res / 2 * width + 1;
+	for ( int p = blip_res; p-- >= blip_res / 2; )
+	{
+		int p2 = blip_res - 2 - p;
+		long error = kernel_unit;
+		for ( int i = 1; i < size; i += blip_res )
+		{
+			error -= impulses [i + p ];
+			error -= impulses [i + p2];
+		}
+		if ( p == p2 ) error /= 2;
+		impulses [size - blip_res + p] += error;
+	}
+}
+static int kernel( short* impulses, int width, int treble, long rolloff, long rate )
+{
+	float fimpulse [blip_res / 2 * (blip_widest_impulse_ - 1) + blip_res * 2];
+	int const half_size = blip_res / 2 * (width - 1);
+	generate( &fimpulse [blip_res], half_size, treble, rolloff, rate, 0 );
+	int i;
+	for ( i = blip_res; i--; )
+		fimpulse [blip_res + half_size + i] = fimpulse [blip_res + half_size - 1 - i];
+	for ( i = 0; i < blip_res; i++ )
+		fimpulse [i] = 0.0f;
+	double total = 0.0;
+	for ( i = 0; i < half_size; i++ ) total += fimpulse [blip_res + i];
+	double const base_unit = 32768.0;
+	double rescale = base_unit / 2 / total;
+	long kernel_unit = (long) base_unit;
+	double sum = 0.0, next = 0.0;
+	int const size = blip_res / 2 * width + 1;
+	for ( i = 0; i < size; i++ )
+	{
+		impulses [i] = (short) floor( (next - sum) * rescale + 0.5 );
+		sum  += fimpulse [i];
+		next += fimpulse [i + blip_res];
+	}
+	adjust_impulse( impulses, width, kernel_unit );
+	return size;
+}
 
 struct Eq { const char* name; int treble; long rolloff; };
 static Eq   eqs[6]   = { {"nes",-1,80}, {"famicom",-15,80}, {"tv",-12,180},
                          {"flat",0,1}, {"crisp",5,1}, {"tinny",-47,2000} };
 static long rates[4] = { 32000, 44100, 48000, 96000 };
 
-template<int Q>
-static void dump_quality(void)
+static void dump_quality( int Q )
 {
 	for (int e = 0; e < 6; e++)
 	for (int r = 0; r < 4; r++)
 	{
-		Blip_Synth<Q,1> synth;                     /* range is irrelevant to the kernel */
-		blip_eq_t eq( eqs[e].treble, eqs[e].rolloff, rates[r] );
-		synth.treble_eq( eq );                     /* volume_unit_==0 -> base kernel */
-
-		short const* imp = synth.regen_impulses();
-		int          n   = synth.regen_size();
+		short imp[512];
+		int n = kernel( imp, Q, eqs[e].treble, eqs[e].rolloff, rates[r] );
 		std::printf("/* q=%d eq=%s rate=%ld */\n", Q, eqs[e].name, rates[r]);
 		std::printf("static const short bk_q%d_e%d_r%d[%d] = {\n", Q, e, r, n);
 		for (int i = 0; i < n; i++)
@@ -38,36 +120,28 @@ static void dump_quality(void)
 		std::printf("\n};\n");
 	}
 }
-
 int main(void)
 {
 	std::printf("/* Auto-generated by tools/gen_blip_kernels.cpp. Do not edit by hand.\n");
 	std::printf(" * Baked Blip synth base kernels for QuickNES's fixed EQ x rate x quality\n");
 	std::printf(" * space. Regenerate if an EQ preset, supported rate, or quality changes. */\n");
 	std::printf("#ifndef BLIP_KERNELS_H\n#define BLIP_KERNELS_H\n\n");
-
-	dump_quality<8>();
-	dump_quality<12>();
-
-	/* Lookup dispatch: match on (width==quality, treble, rolloff, sample_rate).
-	 * Returns the kernel pointer and length, or NULL on an off-menu combo. */
-	std::printf("\nstatic const short* blip_lookup_kernel(int width, int treble,\n");
-	std::printf("                                       long rolloff, long rate, int* out_n)\n{\n");
+	dump_quality(8);
+	dump_quality(12);
 	const char* qn[2] = { "8", "12" };
 	int         qv[2] = { 8, 12 };
+	std::printf("\nstatic const short* blip_lookup_kernel(int width, int treble,\n");
+	std::printf("                                       long rolloff, long rate, int* out_n)\n{\n");
 	for (int qi = 0; qi < 2; qi++)
 	{
 		std::printf("  if (width == %d) {\n", qv[qi]);
 		for (int e = 0; e < 6; e++)
 		for (int r = 0; r < 4; r++)
-		{
 			std::printf("    if (treble == %d && rolloff == %ld && rate == %ld) { *out_n = (int)(sizeof bk_q%s_e%d_r%d/sizeof(short)); return bk_q%s_e%d_r%d; }\n",
 				(int)eqs[e].treble, eqs[e].rolloff, rates[r], qn[qi], e, r, qn[qi], e, r);
-		}
 		std::printf("  }\n");
 	}
 	std::printf("  (void)treble; (void)rolloff; (void)rate; *out_n = 0; return 0;\n}\n\n");
-
 	std::printf("#endif /* BLIP_KERNELS_H */\n");
 	return 0;
 }

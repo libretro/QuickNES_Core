@@ -1,6 +1,6 @@
 /* Validation: compile twice and diff.
- *   float ref : -DBLIP_REGEN_KERNELS   (treble_eq computes in float)
- *   baked     : -DBLIP_KERNEL_TEST     (treble_eq loads baked kernels)
+/* Validation of the baked runtime path (build with -DBLIP_KERNEL_TEST).
+ * treble_eq loads baked kernels; the float reference is tools/gen_blip_kernels.cpp.
  * Both expose the regen accessors. The FNV over every synth's impulses[]
  * across all 48 combos -- after treble_eq and again after a volume() rescale --
  * must match exactly.

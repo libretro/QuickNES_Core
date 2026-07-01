@@ -717,7 +717,7 @@ regen-audio-tables:
 	/tmp/qn_gen_emu2413 > nes_emu/emu2413_tables.h
 	$(CXX) -O2 -o /tmp/qn_gen_nonlin nes_emu/tools/gen_nes_nonlin_table.cpp
 	/tmp/qn_gen_nonlin > nes_emu/nes_nonlin_table.h
-	$(CXX) -O2 -DBLIP_REGEN_KERNELS -Ines_emu -o /tmp/qn_gen_blip nes_emu/tools/gen_blip_kernels.cpp nes_emu/Blip_Buffer.cpp
+	$(CXX) -O2 -o /tmp/qn_gen_blip nes_emu/tools/gen_blip_kernels.cpp
 	/tmp/qn_gen_blip > nes_emu/blip_kernels.h
 	@echo "Regenerated emu2413_tables.h, nes_nonlin_table.h, blip_kernels.h"
 

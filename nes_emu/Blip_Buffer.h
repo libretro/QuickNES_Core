@@ -160,15 +160,13 @@ public:
 		long kernel_unit;
 		int impulses_size() const { return blip_res / 2 * width + 1; }
 		void adjust_impulse();
-#ifndef BLIP_REGEN_KERNELS
 		// Loads a deterministic baked base kernel for a known (width, treble,
-		// rolloff, sample_rate) combo. Returns true on a hit; false means the
-		// caller must fall back to computing the kernel in floating point.
+		// rolloff, sample_rate) combo. Returns true on a hit, false on an
+		// off-menu combo (the caller then uses the canonical fallback kernel).
 		bool load_baked_kernel( blip_eq_t const& );
-#endif
 	public:
-#if defined(BLIP_REGEN_KERNELS) || defined(BLIP_KERNEL_TEST)
-		// Read-only kernel access for tools/gen_blip_kernels.cpp only.
+#ifdef BLIP_KERNEL_TEST
+		// Read-only kernel access for tools/verify_blip_kernels.cpp only.
 		short const* regen_impulses() const { return impulses; }
 		int          regen_size()     const { return impulses_size(); }
 #endif
@@ -205,7 +203,7 @@ public:
 	// Configure low-pass filter (see notes.txt)
 	void treble_eq( blip_eq_t const& eq )       { impl.treble_eq( eq ); }
 	
-#if defined(BLIP_REGEN_KERNELS) || defined(BLIP_KERNEL_TEST)
+#ifdef BLIP_KERNEL_TEST
 	short const* regen_impulses() const { return impl.regen_impulses(); }
 	int          regen_size()     const { return impl.regen_size(); }
 	int          regen_delta_factor() const { return impl.delta_factor; }
@@ -263,9 +261,6 @@ private:
 	long rolloff_freq;
 	long sample_rate;
 	long cutoff_freq;
-#ifdef BLIP_REGEN_KERNELS
-	void generate( float* out, int count ) const;
-#endif
 	friend class Blip_Synth_;
 };
 

@@ -31,12 +31,15 @@ void Nes_Fme7_Apu::reset()
 
 unsigned char Nes_Fme7_Apu::amp_table [16] =
 {
-	#define ENTRY( n ) (unsigned char) (n * amp_range + 0.5)
-	ENTRY(0.0000), ENTRY(0.0078), ENTRY(0.0110), ENTRY(0.0156),
-	ENTRY(0.0221), ENTRY(0.0312), ENTRY(0.0441), ENTRY(0.0624),
-	ENTRY(0.0883), ENTRY(0.1249), ENTRY(0.1766), ENTRY(0.2498),
-	ENTRY(0.3534), ENTRY(0.4998), ENTRY(0.7070), ENTRY(1.0000)
-	#undef ENTRY
+	/* Sunsoft 5B/FME7 logarithmic volume levels, baked to integers.
+	   Each entry is (unsigned char)(coeff * amp_range + 0.5) with amp_range==192
+	   and coeff = { .0000, .0078, .0110, .0156, .0221, .0312, .0441, .0624,
+	   .0883, .1249, .1766, .2498, .3534, .4998, .7070, 1.0000 }. Precomputed so
+	   the table carries no floating point. */
+	0,  1,  2,  3,
+	4,  6,  8,  12,
+	17, 24, 34, 48,
+	68, 96, 136, 192
 };
 
 void Nes_Fme7_Apu::run_until( blip_time_t end_time )

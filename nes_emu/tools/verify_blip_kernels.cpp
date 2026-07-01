@@ -1,0 +1,50 @@
+/* Validation: compile twice and diff.
+ *   float ref : -DBLIP_REGEN_KERNELS   (treble_eq computes in float)
+ *   baked     : -DBLIP_KERNEL_TEST     (treble_eq loads baked kernels)
+ * Both expose the regen accessors. The FNV over every synth's impulses[]
+ * across all 48 combos -- after treble_eq and again after a volume() rescale --
+ * must match exactly.
+ */
+#include <cstdio>
+#include "Blip_Buffer.h"
+
+static unsigned long long fnv(const void* p, int nbytes, unsigned long long h)
+{
+	const unsigned char* b = (const unsigned char*)p;
+	for (int i = 0; i < nbytes; i++) { h ^= b[i]; h *= 1099511628211ULL; }
+	return h;
+}
+
+struct Eq { double treble; long rolloff; };
+static Eq   eqs[6]   = { {-1.0,80},{-15.0,80},{-12.0,180},{0.0,1},{5.0,1},{-47.0,2000} };
+static long rates[4] = { 32000, 44100, 48000, 96000 };
+
+template<int Q>
+static unsigned long long sweep(unsigned long long h)
+{
+	for (int e = 0; e < 6; e++)
+	for (int r = 0; r < 4; r++)
+	{
+		blip_eq_t eq( eqs[e].treble, eqs[e].rolloff, rates[r] );
+
+		Blip_Synth<Q,1> s1;
+		s1.treble_eq( eq );
+		h = fnv( s1.regen_impulses(), s1.regen_size() * (int)sizeof(short), h );
+
+		/* Exercise the shared volume rescale path (both attenuating and not). */
+		Blip_Synth<Q,1> s2;
+		s2.volume( 0.03 );        /* small -> triggers the kernel-shift branch */
+		s2.treble_eq( eq );
+		h = fnv( s2.regen_impulses(), s2.regen_size() * (int)sizeof(short), h );
+	}
+	return h;
+}
+
+int main(void)
+{
+	unsigned long long h = 1469598103934665603ULL;
+	h = sweep<8>(h);
+	h = sweep<12>(h);
+	std::printf("impulses_fnv=%016llx\n", h);
+	return 0;
+}

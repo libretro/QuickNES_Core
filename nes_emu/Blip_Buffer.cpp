@@ -241,8 +241,34 @@ void Blip_Synth_::adjust_impulse()
 	//      printf( "%5ld,", impulses [j * blip_res + i + 1] );
 }
 
+#ifndef BLIP_REGEN_KERNELS
+#include "blip_kernels.h"
+bool Blip_Synth_::load_baked_kernel( blip_eq_t const& eq )
+{
+	// All QuickNES EQ presets leave cutoff_freq at 0; anything else is off-menu.
+	if ( eq.cutoff_freq != 0 )
+		return false;
+	int n = 0;
+	short const* k = blip_lookup_kernel( width, eq.treble, eq.rolloff_freq,
+	                                     eq.sample_rate, &n );
+	if ( !k || n != impulses_size() )
+		return false;
+	for ( int i = 0; i < n; i++ )
+		impulses [i] = k [i];
+	kernel_unit = 32768; // base_unit; matches the baked (post-adjust_impulse) state
+	return true;
+}
+#endif
+
 void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 {
+#ifndef BLIP_REGEN_KERNELS
+	// Default: load the deterministic baked base kernel. Only fall through to
+	// the floating-point build for an off-menu (width, treble, rolloff, rate)
+	// combo the frontend does not normally request.
+	if ( !load_baked_kernel( eq ) )
+#endif
+	{
 	float fimpulse [blip_res / 2 * (blip_widest_impulse_ - 1) + blip_res * 2];
 	
 	int const half_size = blip_res / 2 * (width - 1);
@@ -278,6 +304,7 @@ void Blip_Synth_::treble_eq( blip_eq_t const& eq )
 		next += fimpulse [i + blip_res];
 	}
 	adjust_impulse();
+	}
 	
 	// volume might require rescaling
 	double vol = volume_unit_;

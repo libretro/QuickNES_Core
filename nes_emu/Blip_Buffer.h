@@ -160,7 +160,18 @@ public:
 		long kernel_unit;
 		int impulses_size() const { return blip_res / 2 * width + 1; }
 		void adjust_impulse();
+#ifndef BLIP_REGEN_KERNELS
+		// Loads a deterministic baked base kernel for a known (width, treble,
+		// rolloff, sample_rate) combo. Returns true on a hit; false means the
+		// caller must fall back to computing the kernel in floating point.
+		bool load_baked_kernel( blip_eq_t const& );
+#endif
 	public:
+#if defined(BLIP_REGEN_KERNELS) || defined(BLIP_KERNEL_TEST)
+		// Read-only kernel access for tools/gen_blip_kernels.cpp only.
+		short const* regen_impulses() const { return impulses; }
+		int          regen_size()     const { return impulses_size(); }
+#endif
 		Blip_Buffer* buf;
 		int last_amp;
 		int delta_factor;
@@ -186,6 +197,11 @@ public:
 	
 	// Configure low-pass filter (see notes.txt)
 	void treble_eq( blip_eq_t const& eq )       { impl.treble_eq( eq ); }
+	
+#if defined(BLIP_REGEN_KERNELS) || defined(BLIP_KERNEL_TEST)
+	short const* regen_impulses() const { return impl.regen_impulses(); }
+	int          regen_size()     const { return impl.regen_size(); }
+#endif
 	
 	// Get/set Blip_Buffer used for output
 	Blip_Buffer* output() const                 { return impl.buf; }

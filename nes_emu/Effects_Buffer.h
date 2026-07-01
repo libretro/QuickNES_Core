@@ -24,22 +24,27 @@ public:
 	//    3      echo         -
 	//    4      echo         -
 	
-	// Channel configuration
+	// Fixed-point type for pan/level coefficients (Q15).
+	typedef long fixed_t;
+	
+	// Channel configuration. Levels/pans are Q15 fixed-point (1.0 == 1<<15,
+	// i.e. the former TO_FIXED() value); delays are integer milliseconds. This
+	// keeps the whole effects path integer and deterministic.
 	struct config_t {
-		double pan_1;           // -1.0 = left, 0.0 = center, 1.0 = right
-		double pan_2;
-		double echo_delay;      // msec
-		double echo_level;      // 0.0 to 1.0
-		double reverb_delay;    // msec
-		double delay_variance;  // difference between left/right delays (msec)
-		double reverb_level;    // 0.0 to 1.0
+		fixed_t pan_1;          // Q15: 0 = center, <0 = left, >0 = right
+		fixed_t pan_2;
+		int     echo_delay;     // msec
+		fixed_t echo_level;     // Q15, 0..1<<15
+		int     reverb_delay;   // msec
+		int     delay_variance; // difference between left/right delays (msec)
+		fixed_t reverb_level;   // Q15, 0..1<<15
 		bool effects_enabled;   // if false, use optimized simple mixer
 		config_t();
 	};
 	
 	// Set configuration of buffer
 	virtual void config( const config_t& );
-	void set_depth( double );
+	void set_depth( int depth_q15 ); // Q15 depth (1<<15 == 1.0)
 	
 public:
 	~Effects_Buffer();
@@ -52,7 +57,6 @@ public:
 	long read_samples( blip_sample_t*, long );
 	long samples_avail() const;
 private:
-	typedef long fixed_t;
 	
 	enum { max_buf_count = 7 };
 	Blip_Buffer bufs [max_buf_count];

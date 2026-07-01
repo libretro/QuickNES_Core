@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 typedef long fixed_t;
 
-#define TO_FIXED( f )   fixed_t ((f) * (1L << 15) + 0.5)
+#define FIXED_ONE       ((Effects_Buffer::fixed_t) (1L << 15)) // 1.0 in Q15
 #define FMUL( x, y )    (((x) * (y)) >> 15)
 
 const unsigned echo_size = 4096;
@@ -37,30 +37,31 @@ BOOST_STATIC_ASSERT( (reverb_size & reverb_mask) == 0 ); // must be power of 2
 
 Effects_Buffer::config_t::config_t()
 {
-	pan_1           = -0.15f;
-	pan_2           =  0.15f;
-	reverb_delay    = 88.0f;
-	reverb_level    = 0.12f;
-	echo_delay      = 61.0f;
-	echo_level      = 0.10f;
-	delay_variance  = 18.0f;
+	pan_1           = -4915; // TO_FIXED(-0.15)
+	pan_2           =  4915; // TO_FIXED( 0.15)
+	reverb_delay    = 88;    // msec
+	reverb_level    = 3932;  // TO_FIXED(0.12)
+	echo_delay      = 61;    // msec
+	echo_level      = 3277;  // TO_FIXED(0.10)
+	delay_variance  = 18;    // msec
 	effects_enabled = false;
 }
 
-void Effects_Buffer::set_depth( double d )
+void Effects_Buffer::set_depth( int depth_q15 )
 {
-	float f = (float) d;
 	config_t c;
-	c.pan_1             = -0.6f * f;
-	c.pan_2             =  0.6f * f;
-	c.reverb_delay      = 880 * 0.1f;
-	c.echo_delay        = 610 * 0.1f;
-	if ( f > 0.5 )
-		f = 0.5; // TODO: more linear reduction of extreme reverb/echo
-	c.reverb_level      = 0.5f * f;
-	c.echo_level        = 0.30f * f;
-	c.delay_variance    = 180 * 0.1f;
-	c.effects_enabled   = (d > 0.0f);
+	// depth is Q15 (1<<15 == 1.0); pans scale by 0.6, reverb by 0.5, echo by 0.30
+	long f = depth_q15;
+	c.pan_1             = (fixed_t) ( -19661 * (long long) f >> 15 ); // -0.6 * depth
+	c.pan_2             = (fixed_t) (  19661 * (long long) f >> 15 ); //  0.6 * depth
+	c.reverb_delay      = 88;
+	c.echo_delay        = 61;
+	if ( f > (1 << 14) )
+		f = 1 << 14; // clamp depth to 0.5 for extreme reverb/echo
+	c.reverb_level      = (fixed_t) ( 16384 * (long long) f >> 15 ); // 0.5  * depth
+	c.echo_level        = (fixed_t) (  9830 * (long long) f >> 15 ); // 0.30 * depth
+	c.delay_variance    = 18;
+	c.effects_enabled   = ( depth_q15 > 0 );
 	config( c );
 }
 
@@ -181,24 +182,25 @@ void Effects_Buffer::config( const config_t& cfg )
 	{
 		// convert to internal format
 		
-		chans.pan_1_levels [0] = TO_FIXED( 1 ) - TO_FIXED( config_.pan_1 );
-		chans.pan_1_levels [1] = TO_FIXED( 2 ) - chans.pan_1_levels [0];
+		// pan/level fields are already Q15 fixed-point
+		chans.pan_1_levels [0] = FIXED_ONE - config_.pan_1;
+		chans.pan_1_levels [1] = (FIXED_ONE * 2) - chans.pan_1_levels [0];
 		
-		chans.pan_2_levels [0] = TO_FIXED( 1 ) - TO_FIXED( config_.pan_2 );
-		chans.pan_2_levels [1] = TO_FIXED( 2 ) - chans.pan_2_levels [0];
+		chans.pan_2_levels [0] = FIXED_ONE - config_.pan_2;
+		chans.pan_2_levels [1] = (FIXED_ONE * 2) - chans.pan_2_levels [0];
 		
-		chans.reverb_level = TO_FIXED( config_.reverb_level );
-		chans.echo_level = TO_FIXED( config_.echo_level );
+		chans.reverb_level = config_.reverb_level;
+		chans.echo_level = config_.echo_level;
 		
-		int delay_offset = int (1.0 / 2000 * config_.delay_variance * sample_rate());
+		int delay_offset = (int) ( (long long) config_.delay_variance * sample_rate() / 2000 );
 		
-		int reverb_sample_delay = int (1.0 / 1000 * config_.reverb_delay * sample_rate());
+		int reverb_sample_delay = (int) ( (long long) config_.reverb_delay * sample_rate() / 1000 );
 		chans.reverb_delay_l = pin_range( reverb_size -
 				(reverb_sample_delay - delay_offset) * 2, reverb_size - 2, 0 );
 		chans.reverb_delay_r = pin_range( reverb_size + 1 -
 				(reverb_sample_delay + delay_offset) * 2, reverb_size - 1, 1 );
 		
-		int echo_sample_delay = int (1.0 / 1000 * config_.echo_delay * sample_rate());
+		int echo_sample_delay = (int) ( (long long) config_.echo_delay * sample_rate() / 1000 );
 		chans.echo_delay_l = pin_range( echo_size - 1 - (echo_sample_delay - delay_offset),
 				echo_size - 1 );
 		chans.echo_delay_r = pin_range( echo_size - 1 - (echo_sample_delay + delay_offset),

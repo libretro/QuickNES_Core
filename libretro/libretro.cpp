@@ -835,13 +835,13 @@ static void update_audio_mode(void)
 			}
 
 			Effects_Buffer::config_t c;
-			c.pan_1             = -0.6f; // no full panning
-			c.pan_2             =  0.6f;
-			c.delay_variance    =  18.0f;
-			c.reverb_delay      =  88.0f;
-			c.echo_delay        =  61.0;
-			c.reverb_level      =  0.2f; // adds a bit of "depth" instead of just being dry for each channel
-			c.echo_level        =  0.2f;
+			c.pan_1             = -19661; // TO_FIXED(-0.6); no full panning
+			c.pan_2             =  19661; // TO_FIXED( 0.6)
+			c.delay_variance    =  18;    // msec
+			c.reverb_delay      =  88;    // msec
+			c.echo_delay        =  61;    // msec
+			c.reverb_level      =  6554;  // TO_FIXED(0.2); adds a bit of "depth" instead of being dry per channel
+			c.echo_level        =  6554;  // TO_FIXED(0.2)
 			c.effects_enabled   =  1;
 			effects_buffer.config( c );
 		}

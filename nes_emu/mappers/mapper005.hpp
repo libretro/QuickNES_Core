@@ -164,24 +164,28 @@ public:
 
 	void sync_chr()
 	{
-		int hi = chr_upper << 8; // $5130 -> CHR A16/A17 in 1K units
+		// $5130 bits 0-1 are the upper CHR address bits (A16/A17). set_chr_bank
+		// scales the bank index by the bank size, and the MMC5 registers are
+		// already expressed in units of their bank size, so the register value
+		// (plus the upper bits shifted to that unit) is passed directly.
+		int up = chr_upper;
 
 		switch ( chr_mode )
 		{
 		case 0: // 8K
-			set_chr_bank( 0x0000, bank_8k, (chr_banks [7] << 3) | hi );
+			set_chr_bank( 0x0000, bank_8k, chr_banks [7] | (up << 8) );
 			break;
 
 		case 1: // 4K
-			set_chr_bank( 0x0000, bank_4k, (chr_banks [3] << 2) | hi );
-			set_chr_bank( 0x1000, bank_4k, (chr_banks [7] << 2) | hi );
+			set_chr_bank( 0x0000, bank_4k, chr_banks [3] | (up << 8) );
+			set_chr_bank( 0x1000, bank_4k, chr_banks [7] | (up << 8) );
 			break;
 
 		case 2: // 2K
-			set_chr_bank( 0x0000, bank_2k, (chr_banks [1] << 1) | hi );
-			set_chr_bank( 0x0800, bank_2k, (chr_banks [3] << 1) | hi );
-			set_chr_bank( 0x1000, bank_2k, (chr_banks [5] << 1) | hi );
-			set_chr_bank( 0x1800, bank_2k, (chr_banks [7] << 1) | hi );
+			set_chr_bank( 0x0000, bank_2k, chr_banks [1] | (up << 8) );
+			set_chr_bank( 0x0800, bank_2k, chr_banks [3] | (up << 8) );
+			set_chr_bank( 0x1000, bank_2k, chr_banks [5] | (up << 8) );
+			set_chr_bank( 0x1800, bank_2k, chr_banks [7] | (up << 8) );
 			break;
 
 		case 3: // 1K
@@ -189,14 +193,14 @@ public:
 			// the original Castlevania 3 mapping: $5120-$5123 -> the low four
 			// 1 KiB slots, $5128-$512B -> the high four. (A per-fetch sprite/bg
 			// split is not possible in this PPU.)
-			set_chr_bank( 0x0000, bank_1k, chr_banks [0] | hi );
-			set_chr_bank( 0x0400, bank_1k, chr_banks [1] | hi );
-			set_chr_bank( 0x0800, bank_1k, chr_banks [2] | hi );
-			set_chr_bank( 0x0c00, bank_1k, chr_banks [3] | hi );
-			set_chr_bank( 0x1000, bank_1k, chr_banks [8]  | hi );
-			set_chr_bank( 0x1400, bank_1k, chr_banks [9]  | hi );
-			set_chr_bank( 0x1800, bank_1k, chr_banks [10] | hi );
-			set_chr_bank( 0x1c00, bank_1k, chr_banks [11] | hi );
+			set_chr_bank( 0x0000, bank_1k, chr_banks [0] | (up << 8) );
+			set_chr_bank( 0x0400, bank_1k, chr_banks [1] | (up << 8) );
+			set_chr_bank( 0x0800, bank_1k, chr_banks [2] | (up << 8) );
+			set_chr_bank( 0x0c00, bank_1k, chr_banks [3] | (up << 8) );
+			set_chr_bank( 0x1000, bank_1k, chr_banks [8]  | (up << 8) );
+			set_chr_bank( 0x1400, bank_1k, chr_banks [9]  | (up << 8) );
+			set_chr_bank( 0x1800, bank_1k, chr_banks [10] | (up << 8) );
+			set_chr_bank( 0x1c00, bank_1k, chr_banks [11] | (up << 8) );
 			break;
 		}
 	}

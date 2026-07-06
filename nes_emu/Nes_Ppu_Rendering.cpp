@@ -53,6 +53,14 @@ inline Nes_Ppu_Impl::cached_tile_t const& Nes_Ppu_Impl::get_bg_tile( int index )
 			((uint8_t*) tile_cache + map_chr_addr( index * bytes_per_tile ));
 }
 
+inline Nes_Ppu_Impl::cached_tile_t const& Nes_Ppu_Impl::get_bg_tile_ex( int exram_byte, int tile )
+{
+	// MMC5 ExGrafix: bank comes from ExRAM, not the normal CHR mapping.
+	BOOST_STATIC_ASSERT( sizeof (cached_tile_t) == bytes_per_tile );
+	return *(Nes_Ppu_Impl::cached_tile_t*)
+			((uint8_t*) tile_cache + exgrafix_tile_offset( exram_byte, tile ));
+}
+
 // Fill
 
 void Nes_Ppu_Rendering::fill_background( int count )
@@ -196,7 +204,16 @@ void Nes_Ppu_Rendering::draw_background_( int remain )
 			addr &= 0x03ff;
 			int const fine_y = 0;
 			int const clipped = false;
-			#include "Nes_Ppu_Bg.h"
+			if ( exgrafix_exram )
+			{
+				#define BG_EXGRAFIX
+				#include "Nes_Ppu_Bg.h"
+				#undef BG_EXGRAFIX
+			}
+			else
+			{
+				#include "Nes_Ppu_Bg.h"
+			}
 		}
 		else
 		{
@@ -205,7 +222,16 @@ void Nes_Ppu_Rendering::draw_background_( int remain )
 			addr &= 0x03ff;
 			height -= fine_y & 1;
 			int const clipped = true;
-			#include "Nes_Ppu_Bg.h"
+			if ( exgrafix_exram )
+			{
+				#define BG_EXGRAFIX
+				#include "Nes_Ppu_Bg.h"
+				#undef BG_EXGRAFIX
+			}
+			else
+			{
+				#include "Nes_Ppu_Bg.h"
+			}
 		}
 	}
 	while ( remain );

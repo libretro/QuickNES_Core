@@ -297,8 +297,36 @@ public:
 		return true;
 	}
 
-	virtual int read( nes_time_t, nes_addr_t addr )
+	virtual int read( nes_time_t time, nes_addr_t addr )
 	{
+		if ( addr == 0x5204 )
+		{
+			// MMC5 IRQ/status. bit 7 = scanline IRQ pending, bit 6 = "in
+			// frame" (PPU currently rendering a visible scanline). Reading
+			// acknowledges and clears the pending flag. This core has no
+			// per-scanline hook, so both bits are derived from the current
+			// time: the visible-render window runs from scanline 0 to 239,
+			// and the IRQ is pending once that window has reached the compare
+			// scanline programmed at $5203 (while enabled).
+			int status = 0;
+
+			// Mapper time is in CPU cycles; a PPU scanline is 341/3 cycles and
+			// visible rendering starts after the 21 pre-render/vblank lines
+			// (matching the $5203 -> irq_time conversion above).
+			nes_time_t frame_start = (341 * 21 + 128) / 3;
+			nes_time_t frame_end   = (341 * 21 + 128 + 240 * 341) / 3;
+			if ( ppu_enabled() && time >= frame_start && time < frame_end )
+				status |= 0x40; // in frame
+
+			if ( (irq_enabled & 0x80) && irq_time != no_irq && time >= irq_time )
+			{
+				status |= 0x80;   // IRQ pending
+				irq_time = no_irq; // acknowledge (clear pending) on read
+				irq_changed();
+			}
+
+			return status;
+		}
 		if ( addr == 0x5205 )
 			return (mul_a * mul_b) & 0xff;
 		if ( addr == 0x5206 )

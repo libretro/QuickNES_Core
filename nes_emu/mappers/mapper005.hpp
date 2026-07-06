@@ -109,12 +109,33 @@ public:
 
 	enum { regs_addr = 0x5100 };
 
+	// CPU time at which the scanline IRQ counter reaches compare scanline 'sl'.
+	// Returns no_irq for compares that never occur within visible rendering.
+	nes_time_t irq_compare_time( int sl ) const
+	{
+		if ( sl && sl < 240 )
+			return (341 * 21 + 128 + (sl * 341)) / 3;
+		return no_irq;
+	}
+
 	virtual nes_time_t next_irq( nes_time_t )
 	{
 		if ( irq_enabled & 0x80 )
 			return irq_time;
 
 		return no_irq;
+	}
+
+	// Re-arm the scanline IRQ for the next frame. The MMC5 counter runs every
+	// frame and re-asserts at the compare scanline; a $5204 read acknowledges
+	// (de-asserts) the current assertion but does not stop the counter. Games
+	// that reprogram $5203 each frame (Castlevania 3) overwrite this anyway, so
+	// this only changes behaviour for games that arm once and rely on the
+	// counter re-firing (Metal Slader Glory's message-window raster split).
+	virtual void end_frame( nes_time_t )
+	{
+		irq_time = irq_compare_time( irq_scanline );
+		irq_changed();
 	}
 
 	// -- PRG banking ---------------------------------------------------------
@@ -329,14 +350,17 @@ public:
 			if ( ppu_enabled() && time >= frame_start && time < frame_end )
 				status |= 0x40; // in frame
 
-			// Report the pending flag as status only. Do NOT clear irq_time
-			// here: that would cancel the scanline IRQ the game still needs to
-			// take. Games acknowledge and re-arm the IRQ by writing $5203/$5204
-			// from their handler (as the hardware requires). Cancelling it on a
-			// status read suppressed the per-scanline IRQ that Castlevania 3
-			// uses for its status-bar split, corrupting the paused screen.
+			// Report the pending flag and acknowledge it: clearing irq_time
+			// de-asserts the IRQ line for the rest of this frame (so a polling
+			// game like Metal Slader Glory can proceed past its wait loop),
+			// while end_frame re-arms the counter for the next frame. Games
+			// that re-arm explicitly via $5203 (Castlevania 3) are unaffected.
 			if ( (irq_enabled & 0x80) && irq_time != no_irq && time >= irq_time )
+			{
 				status |= 0x80;
+				irq_time = no_irq;
+				irq_changed();
+			}
 
 			return status;
 		}

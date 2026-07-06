@@ -207,6 +207,12 @@ void Nes_Mapper::set_chr_bank_ex( nes_addr_t addr, bank_size_t bs, int bank )
 	emu().ppu.set_chr_bank_ex( addr, 1 << bs, bank << bs );
 }
 
+void Nes_Mapper::set_exgrafix( uint8_t const* exram, int chr_high )
+{
+	emu().ppu.render_until( emu().clock() );
+	emu().ppu.set_exgrafix( exram, chr_high );
+}
+
 void Nes_Mapper::mirror_manual( int page0, int page1, int page2, int page3 )
 {
 	emu().ppu.render_bg_until( emu().clock() ); 

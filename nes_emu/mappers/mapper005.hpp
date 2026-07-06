@@ -205,6 +205,18 @@ public:
 		}
 	}
 
+	// Enable ExGrafix (extended-attribute) background rendering in the PPU when
+	// the MMC5 is in ExRAM mode 1; otherwise leave normal rendering in force.
+	// In mode 1 each background tile takes its 4 KiB CHR bank and palette from
+	// the per-tile ExRAM byte, which the PPU can only honour through this hook.
+	void sync_exgrafix()
+	{
+		if ( exram_mode == 1 )
+			set_exgrafix( exram, chr_upper );
+		else
+			set_exgrafix( NULL, 0 );
+	}
+
 	// -- Nametables / mirroring ---------------------------------------------
 
 	void sync_mirror()
@@ -235,7 +247,7 @@ public:
 			case 0x01: chr_mode     = data & 3; sync_chr();   break; // $5101
 			case 0x02: ram_protect1 = data & 3; sync_prg();   break; // $5102
 			case 0x03: ram_protect2 = data & 3; sync_prg();   break; // $5103
-			case 0x04: exram_mode   = data & 3;               break; // $5104
+			case 0x04: exram_mode   = data & 3; sync_exgrafix(); break; // $5104
 			case 0x05: nametable_mode = data; sync_mirror();  break; // $5105
 			case 0x06: fill_tile    = data;                   break; // $5106
 			case 0x07: fill_attr    = data & 3;               break; // $5107
@@ -257,7 +269,7 @@ public:
 				sync_chr();
 				break;
 
-			case 0x30: chr_upper = data & 3; sync_chr(); break; // $5130
+			case 0x30: chr_upper = data & 3; sync_chr(); sync_exgrafix(); break; // $5130
 			}
 		}
 		else if ( addr == 0x5203 ) // IRQ scanline compare
@@ -348,6 +360,12 @@ public:
 		sync_prg();
 		sync_chr();
 		sync_mirror();
+
+		// Set ExGrafix state directly (no mid-frame render flush needed here).
+		if ( exram_mode == 1 )
+			emu().ppu.set_exgrafix( exram, chr_upper );
+		else
+			emu().ppu.set_exgrafix( NULL, 0 );
 	}
 
 	virtual void write( nes_time_t, nes_addr_t, int ) { }

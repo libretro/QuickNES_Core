@@ -2,12 +2,20 @@ while ( true )
 {
 	while ( count-- )
 	{
+#ifdef BG_EXGRAFIX
+		// MMC5 extended-attribute mode: the per-tile ExRAM byte supplies both
+		// the 4 KiB CHR bank and the 2-bit palette for this background tile.
+		int const exbyte = exgrafix_exram [addr & 0x3ff];
+		unsigned long offset = (exbyte >> 6 & 3) * attrib_factor + this->palette_offset;
+		cache_t const* lines = this->get_bg_tile_ex( exbyte, nametable [addr] );
+#else
 		int attrib = attr_table [addr >> 2 & 0x07];
 		attrib >>= (addr >> 4 & 4) | (addr & 2);
 		unsigned long offset = (attrib & 3) * attrib_factor + this->palette_offset;
 		
 		// draw one tile
 		cache_t const* lines = this->get_bg_tile( nametable [addr] + bg_bank );
+#endif
 		uint8_t* p = pixels;
 		addr++;
 		pixels += 8; // next tile

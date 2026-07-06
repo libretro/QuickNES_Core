@@ -44,6 +44,16 @@ public:
 	void set_chr_bank( int addr, int size, long data );
 	void set_chr_bank_ex( int addr, int size, long data );
 	
+	// Enable/disable MMC5 extended-attribute (ExGrafix) background rendering.
+	// exram is the 1 KiB ExRAM buffer (null disables); chr_high supplies the
+	// $5130 upper CHR address bits. Only the MMC5 mapper calls this.
+	void set_exgrafix( uint8_t const* exram, int chr_high )
+	{
+		exgrafix_exram = exram;
+		exgrafix_chr_base = (long) chr_high << 18;
+		exgrafix_chr_mask = chr_size ? chr_size - 1 : 0;
+	}
+	
 	// Nametable and CHR RAM
 	enum { nt_ram_size = 0x1000 };
 	enum { chr_addr_size = 0x2000 };
@@ -67,6 +77,23 @@ protected:
 	void begin_frame();
 	void run_hblank( int );
 	int sprite_height() const { return (w2000 >> 2 & 8) + 8; }
+
+	// MMC5 extended-attribute mode (ExGrafix). When exgrafix_exram is non-null,
+	// the background renderer selects each tile's 4 KiB CHR bank and palette
+	// from the per-tile ExRAM byte instead of the normal CHR mapping. Null for
+	// every other game and mode, so their rendering is completely unaffected.
+	uint8_t const* exgrafix_exram; // 1 KiB ExRAM, indexed by nametable offset
+	long exgrafix_chr_base;        // $5130 upper CHR bits, pre-shifted to bytes
+	long exgrafix_chr_mask;        // (chr_size - 1), for wrapping the bank
+
+	// Byte offset into the tile cache for an ExGrafix background tile: the
+	// ExRAM byte's low 6 bits pick a 4 KiB CHR bank, the nametable value picks
+	// the tile within it. Mirrors the reference (FCEUmm) fetch.
+	long exgrafix_tile_offset( int exram_byte, int tile ) const
+	{
+		long bank = ((long) (exram_byte & 0x3f) << 12) + exgrafix_chr_base;
+		return (bank + tile * bytes_per_tile) & exgrafix_chr_mask;
+	}
 	
 protected: //friend class Nes_Ppu; private:
 	
@@ -90,6 +117,7 @@ protected: //friend class Nes_Ppu_Rendering; private:
 	typedef uint32_t cache_t;
 	typedef cache_t cached_tile_t [4];
 	cached_tile_t const& get_bg_tile( int index );
+	cached_tile_t const& get_bg_tile_ex( int exram_byte, int tile );
 	cached_tile_t const& get_sprite_tile( uint8_t const* sprite );
 	uint8_t* get_nametable( int addr ) { return nt_banks [addr >> 10 & 3]; };
 	

@@ -38,6 +38,10 @@ Nes_Ppu_Impl::Nes_Ppu_Impl()
 	mmc24_latched[0] = 0;
 	mmc24_latched[1] = 0;
 
+	exgrafix_exram = NULL;
+	exgrafix_chr_base = 0;
+	exgrafix_chr_mask = 0;
+
 #if !defined(NDEBUG) && !defined(PSP) && !defined(PS2)
 	// verify that unaligned accesses work
 	static unsigned char b  [19] = { 0 };

@@ -123,6 +123,10 @@ protected:
 	// Map 'size' bytes from 'CHR + bank * size' to PPU address space starting at 'addr'
 	void set_chr_bank( nes_addr_t addr, bank_size_t size, int bank );
 	void set_chr_bank_ex( nes_addr_t addr, bank_size_t size, int bank );
+
+	// Enable/disable MMC5 ExGrafix background rendering (flushes pending
+	// rendering first, so mid-frame mode changes are honoured).
+	void set_exgrafix( uint8_t const* exram, int chr_high );
 	
 	// Set PPU mirroring. All mappings implemented using mirror_manual().
 	void mirror_manual( int page0, int page1, int page2, int page3 );

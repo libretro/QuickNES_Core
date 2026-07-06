@@ -302,8 +302,7 @@ public:
 		if ( addr == 0x5204 )
 		{
 			// MMC5 IRQ/status. bit 7 = scanline IRQ pending, bit 6 = "in
-			// frame" (PPU currently rendering a visible scanline). Reading
-			// acknowledges and clears the pending flag. This core has no
+			// frame" (PPU currently rendering a visible scanline). This core has no
 			// per-scanline hook, so both bits are derived from the current
 			// time: the visible-render window runs from scanline 0 to 239,
 			// and the IRQ is pending once that window has reached the compare
@@ -318,12 +317,14 @@ public:
 			if ( ppu_enabled() && time >= frame_start && time < frame_end )
 				status |= 0x40; // in frame
 
+			// Report the pending flag as status only. Do NOT clear irq_time
+			// here: that would cancel the scanline IRQ the game still needs to
+			// take. Games acknowledge and re-arm the IRQ by writing $5203/$5204
+			// from their handler (as the hardware requires). Cancelling it on a
+			// status read suppressed the per-scanline IRQ that Castlevania 3
+			// uses for its status-bar split, corrupting the paused screen.
 			if ( (irq_enabled & 0x80) && irq_time != no_irq && time >= irq_time )
-			{
-				status |= 0x80;   // IRQ pending
-				irq_time = no_irq; // acknowledge (clear pending) on read
-				irq_changed();
-			}
+				status |= 0x80;
 
 			return status;
 		}
